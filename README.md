@@ -41,7 +41,6 @@ curl http://127.0.0.1:8095/healthz
 `Caddyfile.snippet` has the two lines for `doner.twh0.de`.
 
 Data lives in `./data` (SQLite + uploads), mounted at `/data`. Back it up with:
-
 ```sh
 sqlite3 data/spiessgesellen.sqlite3 ".backup 'backup-$(date +%F).sqlite3'"
 rsync -a data/uploads/ backup-uploads/

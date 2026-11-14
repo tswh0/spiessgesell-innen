@@ -1,0 +1,13 @@
+[Unit]
+Description=Quick Cloudflare tunnel for Spiessgesellen (temporary)
+After=network-online.target spiessgesellen.service
+
+[Service]
+Type=simple
+ExecStart=/home/hermes/.local/bin/cloudflared tunnel --url http://127.0.0.1:8095 --no-autoupdate
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target
