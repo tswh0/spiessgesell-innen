@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    image: spiessgesellen:local
+    container_name: spiessgesellen
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data
+    ports:
+      - "127.0.0.1:${APP_PORT:-8095}:8000"
+    security_opt:
+      - no-new-privileges:true

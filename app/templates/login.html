@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Rein · Spießgesellen{% endblock %}
+{% block bodyclass %}sg-body--center{% endblock %}
+{% block nav %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block main %}
+<section class="sg-auth">
+  <div class="sg-auth__card">
+    <span class="mark mark--initial" aria-hidden="true">S</span>
+    <h1>Spießgesellen</h1>
+    <p class="t-lead">Döner in Berlin. Bewertet von uns.</p>
+    <form class="form" method="post" action="/login">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label class="field field--full">Passwort
+        <input type="password" name="password" autocomplete="current-password" autofocus required>
+      </label>
+      {% if error %}<p class="sg-error">{{ error }}</p>{% endif %}
+      <div class="btn-row">
+        <button class="btn btn--primary" type="submit">Rein</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

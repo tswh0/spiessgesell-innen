@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Meine Bewertungen · Spießgesellen{% endblock %}
+{% block bodyclass %}sg-body--page{% endblock %}
+{% block main %}
+<section class="wrap sg-page">
+  <h1>Meine Bewertungen</h1>
+  <p class="t-lead muted">Alles, was {{ current_name }} bisher gegessen hat.</p>
+
+  {% if reviews %}
+  <ol class="sg-mine">
+    {% for review in reviews %}
+    <li>
+      <div>
+        <a class="link" href="/laden/{{ review.shop_slug }}">{{ review.shop_name }}</a>
+        <span class="t-small muted"> · {{ review.visited_on|date_de }}</span>
+        {% if review.body %}<p class="t-small muted">{{ review.body[:160] }}{% if review.body|length > 160 %}…{% endif %}</p>{% endif %}
+      </div>
+      <span class="sg-mine__score">{{ review.score|score }}</span>
+      <a class="link t-small" href="/bewertungen/{{ review.id }}/bearbeiten">Bearbeiten</a>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <div class="sg-empty">
+    <p class="t-body">Noch keine eigene Bewertung.</p>
+    <a class="btn btn--primary" href="/">Zur Karte</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

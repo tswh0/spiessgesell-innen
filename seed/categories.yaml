@@ -1,0 +1,15 @@
+- key: bread
+  label: Brot
+  hint: frisch, knusprig, nicht pappig
+- key: meat
+  label: Fleisch
+  hint: Qualität, Würzung, Saftigkeit
+- key: salad
+  label: Salat & Gemüse
+  hint: Frische, Crunch, Menge
+- key: sauce
+  label: Sauce
+  hint: Balance, Knoblauch, Kräuter
+- key: value
+  label: Preis-Leistung
+  hint: Portion vs. Preis

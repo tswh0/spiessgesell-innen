@@ -1,0 +1,6 @@
+# Host Caddy, not part of the compose stack:
+#   doner.twh0.de { reverse_proxy 127.0.0.1:8095 }
+# The app already sends HSTS-adjacent security headers; Caddy does TLS.
+doner.twh0.de {
+	reverse_proxy 127.0.0.1:8095
+}

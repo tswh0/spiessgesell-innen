@@ -1,0 +1,9 @@
+.venv/
+data/
+data-prod/
+__pycache__/
+*.pyc
+.env
+.taste-skill/
+shots/
+.pytest_cache/

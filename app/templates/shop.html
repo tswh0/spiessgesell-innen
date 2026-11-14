@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}{{ shop.name }} · Spießgesellen{% endblock %}
+{% block bodyclass %}sg-body--shop{% endblock %}
+{% block main %}
+<article class="sg-shop">
+  {% if hero %}
+  <figure class="sg-hero">
+    <img src="/uploads/{{ hero.file }}" alt="Döner bei {{ shop.name }}" width="{{ hero.width }}" height="{{ hero.height }}">
+  </figure>
+  {% endif %}
+
+  <header class="sg-shop__head wrap">
+    <div>
+      <p class="t-label muted"><a class="link" href="/">Karte</a>{% if shop.district %} · {{ shop.district }}{% endif %}</p>
+      <h1>{{ shop.name }}</h1>
+      {% if shop.address %}<p class="t-lead">{{ shop.address }}</p>{% endif %}
+      {% if shop.note %}<p class="muted">{{ shop.note }}</p>{% endif %}
+    </div>
+    <div class="sg-shop__score">
+      <span class="sg-score">{{ shop.score|score }}</span>
+      <span class="t-small muted">{{ shop.review_count }} Bewertung{% if shop.review_count != 1 %}en{% endif %}</span>
+    </div>
+  </header>
+
+  <div class="wrap sg-shop__actions">
+    <a class="btn btn--primary" href="/laden/{{ shop.slug }}/bewerten">Bewerten</a>
+    <a class="btn btn--secondary" href="{{ directions }}" target="_blank" rel="noopener">Route in Google Maps</a>
+    {% if shop.google_maps_url %}<a class="link" href="{{ shop.google_maps_url }}" target="_blank" rel="noopener">Auf Google Maps ansehen</a>{% endif %}
+  </div>
+
+  {% if shop.review_count %}
+  <section class="wrap sg-section">
+    <h2>Die Punkte</h2>
+    <div class="sg-bars">
+      {% for c in categories %}
+      <div class="sg-bar">
+        <span class="sg-bar__label">{{ c.label }}</span>
+        <span class="sg-bar__track"><span class="sg-bar__fill" style="width: {{ (c.score or 0) * 10 }}%"></span></span>
+        <span class="sg-bar__value">{{ c.score|score }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="wrap sg-section">
+    <div class="sg-section__head">
+      <h2>Bewertungen</h2>
+      <a class="link" href="/laden/{{ shop.slug }}/bewerten">Eigene hinzufügen</a>
+    </div>
+    {% if reviews %}
+      {% for review in reviews %}
+      <article class="sg-review">
+        <header>
+          <div>
+            <strong>{{ review.author }}</strong>
+            <span class="t-small muted"> · {{ review.visited_on|date_de }}{% if review.price_eur %} · {{ review.price_eur|euro }}{% endif %}</span>
+          </div>
+          <span class="sg-review__score">{{ review.score|score }}</span>
+        </header>
+        {% if review.scores %}
+        <p class="sg-review__scores t-small muted">{% for s in review.scores %}{{ s.label }} {{ s.score }}{% if not loop.last %} · {% endif %}{% endfor %}</p>
+        {% endif %}
+        {% if review.body %}<p class="sg-review__body">{{ review.body }}</p>{% endif %}
+        {% if review.images %}
+        <div class="sg-shots">
+          {% for image in review.images %}
+          <a class="sg-shot" href="/uploads/{{ image.file }}" target="_blank" rel="noopener">
+            <img src="/uploads/thumbs/{{ image.thumb }}" alt="Foto von {{ shop.name }} von {{ review.author }}" loading="lazy" width="{{ image.width }}" height="{{ image.height }}">
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if review.author == current_name %}
+        <p class="sg-review__own">
+          <a class="link" href="/bewertungen/{{ review.id }}/bearbeiten">Bearbeiten</a>
+        </p>
+        {% endif %}
+      </article>
+      {% endfor %}
+    {% else %}
+    <div class="sg-empty">
+      <p class="t-body">Noch keine Bewertung. Macht den Anfang.</p>
+      <a class="btn btn--primary" href="/laden/{{ shop.slug }}/bewerten">Erste Bewertung schreiben</a>
+    </div>
+    {% endif %}
+  </section>
+</article>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Rangliste · Spießgesellen{% endblock %}
+{% block bodyclass %}sg-body--page{% endblock %}
+{% block main %}
+<section class="wrap sg-page">
+  <h1>Rangliste</h1>
+  <p class="t-lead muted">Was bisher am besten geschmeckt hat.</p>
+
+  {% if leaders %}
+  <div class="sg-leaders">
+    {% for leader in leaders %}
+    <a class="sg-leader" href="/laden/{{ leader.shop_slug }}">
+      <span class="t-label muted">{{ leader.label }}</span>
+      <strong>{{ leader.shop_name }}</strong>
+      <span class="sg-leader__score">{{ leader.score|score }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if rows %}
+  <ol class="sg-rank">
+    {% for row in rows %}
+    <li>
+      <a class="sg-rank__row" href="/laden/{{ row.slug }}">
+        <span class="sg-rank__place">{{ loop.index }}</span>
+        <span class="sg-rank__name">
+          <strong>{{ row.name }}</strong>
+          <span class="t-small muted">{{ row.district or "Berlin" }} · {{ row.review_count }} Bewertung{% if row.review_count != 1 %}en{% endif %}</span>
+        </span>
+        <span class="sg-rank__cats t-small muted">
+          {% for c in categories %}{{ c.label }} {{ row.scores.get(c.key)|score }}{% if not loop.last %} · {% endif %}{% endfor %}
+        </span>
+        <span class="sg-rank__score">{{ row.score|score }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <div class="sg-empty">
+    <p class="t-body">Noch nichts bewertet.</p>
+    <a class="btn btn--primary" href="/">Zur Karte</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

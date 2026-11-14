@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Karte · Spießgesellen{% endblock %}
+{% block bodyclass %}sg-body--map{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='vendor/leaflet.css') }}">
+{% endblock %}
+{% block main %}
+<div class="sg-home">
+  <aside class="sg-side">
+    <div class="sg-side__head">
+      <h1>Döner in Berlin</h1>
+      <p class="t-small muted">{{ totals.shops }} Läden · {{ totals.reviews }} Bewertung{% if totals.reviews != 1 %}en{% endif %}</p>
+      <form class="sg-filters" method="get" action="/">
+        <label class="sr-only" for="bezirk">Bezirk</label>
+        <select id="bezirk" name="bezirk" onchange="this.form.submit()">
+          <option value="">Alle Bezirke</option>
+          {% for d in districts %}<option value="{{ d }}" {% if d == bezirk %}selected{% endif %}>{{ d }}</option>{% endfor %}
+        </select>
+        <label class="sr-only" for="order">Sortierung</label>
+        <select id="order" name="order" onchange="this.form.submit()">
+          <option value="score" {% if order == 'score' %}selected{% endif %}>Beste zuerst</option>
+          <option value="new" {% if order == 'new' %}selected{% endif %}>Neu dazu</option>
+          <option value="name" {% if order == 'name' %}selected{% endif %}>A–Z</option>
+        </select>
+      </form>
+    </div>
+
+    {% if shops %}
+    <ol class="sg-list">
+      {% for shop in shops %}
+      <li>
+        <a class="sg-card" href="/laden/{{ shop.slug }}" data-slug="{{ shop.slug }}">
+          <span class="sg-card__photo">
+            {% if shop.photo %}
+            <img src="/uploads/thumbs/{{ shop.photo.replace('.webp', '_t.webp') }}" alt="" loading="lazy" width="88" height="88">
+            {% else %}
+            <span class="sg-card__blank" aria-hidden="true">{{ shop.name[:1] }}</span>
+            {% endif %}
+          </span>
+          <span class="sg-card__text">
+            <strong>{{ shop.name }}</strong>
+            <span class="t-small muted">{{ shop.district or "Berlin" }}{% if shop.review_count %} · {{ shop.review_count }} Bewertung{% if shop.review_count != 1 %}en{% endif %}{% endif %}</span>
+          </span>
+          <span class="sg-card__score">{% if shop.review_count %}{{ shop.score|score }}{% else %}<span class="sg-card__new">neu</span>{% endif %}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <div class="sg-empty">
+      <p class="t-body">Noch kein Laden auf der Karte.</p>
+      <a class="btn btn--primary" href="/laeden/neu">Ersten Laden eintragen</a>
+    </div>
+    {% endif %}
+  </aside>
+
+  <div class="sg-map">
+    <div id="map" role="application" aria-label="Karte der Dönerläden"></div>
+  </div>
+</div>
+<script type="application/json" id="shop-data">{{ shop_json|safe }}</script>
+{% endblock %}
+{% block footer %}{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='vendor/leaflet.js') }}"></script>
+<script src="{{ url_for('static', path='map.js') }}"></script>
+{% endblock %}
