@@ -2,7 +2,6 @@ name: spiessgesell-innen
 
 services:
   app:
-    build: .
     image: ghcr.io/tswh0/spiessgesell-innen:${IMAGE_TAG:-latest}
     container_name: spiessgesell-innen
     restart: unless-stopped

@@ -1,7 +1,7 @@
 # Test deployment on the Hermes LXC
 
 No Docker daemon here, so the app runs from the venv as user units. Docker stays the
-delivery path for the real host (`compose.yml`).
+delivery path for the real host (`compose.yaml`).
 
 ```sh
 mkdir -p ~/.config/systemd/user
