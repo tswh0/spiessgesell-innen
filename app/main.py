@@ -1,6 +1,10 @@
 import csv
 import io
 import json
+import logging
+import os
+import re
+import uuid
 import zipfile
 from datetime import date
 from pathlib import Path
@@ -20,6 +24,7 @@ BASE = Path(__file__).resolve().parent
 AUTH_MAX_AGE = 60 * 60 * 24 * 90
 NAME_MAX_AGE = 60 * 60 * 24 * 365
 MAX_PHOTOS = 6
+logger = logging.getLogger("spiessgesell")
 
 templates = Jinja2Templates(directory=BASE / "templates")
 
@@ -43,7 +48,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="spießgesell:innen", docs_url=None, redoc_url=None)
     app.state.settings = settings
     app.state.auth = Auth(settings.shared_password, settings.secret_key)
-    app.state.limiter = LoginLimiter()
+    app.state.limiter = LoginLimiter(settings.db_path)
     app.state.thumbs = thumbs
 
     app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
@@ -84,6 +89,39 @@ def require(request: Request) -> str:
     if name == "":
         raise NeedName()
     return name
+
+
+def current_author_id(request: Request) -> str | None:
+    token = request.cookies.get("sg_auth")
+    if not token or not _auth(request).unsign(token, AUTH_MAX_AGE):
+        return None
+    data = _auth(request).unsign(request.cookies.get("sg_author", ""), NAME_MAX_AGE)
+    if isinstance(data, dict) and isinstance(data.get("id"), str):
+        return data["id"]
+    return None
+
+
+def normalize_name(value: str | None) -> str:
+    return " ".join((value or "").split()).casefold()
+
+
+def ensure_author_id(request: Request) -> str:
+    author_id = current_author_id(request)
+    if author_id:
+        return author_id
+    author_id = uuid.uuid4().hex
+    request.state.author_id = author_id
+    return author_id
+
+
+def is_author(review, name: str | None, author_id: str | None) -> bool:
+    if review["author_id"]:
+        return (
+            author_id is not None
+            and review["author_id"] == author_id
+            and normalize_name(review["author"]) == normalize_name(name)
+        )
+    return normalize_name(review["author"]) == normalize_name(name)
 
 
 def safe_next(value: str | None) -> str:
@@ -140,7 +178,7 @@ def _export_rows(conn, photo_prefix: str):
         ]
         reviews = db.reviews_for_shop(conn, shop["id"])
         if not reviews:
-            rows.append(base + [""] * (7 + len(cats)))
+            rows.append(base + [""] * (8 + len(cats)))
             continue
         for review in reviews:
             scores = db.review_scores(conn, review["id"])
@@ -149,7 +187,8 @@ def _export_rows(conn, photo_prefix: str):
                 if review["price_eur"] is not None else ""
             )
             rows.append(base + [
-                review["id"], review["author"], fmt_date(review["visited_on"]), price,
+                review["id"], review["author"], review["author_id"] or "",
+                fmt_date(review["visited_on"]), price,
                 *[scores.get(c["key"], "") for c in cats],
                 fmt_score(review["score"]) if review["score"] is not None else "",
                 review["body"],
@@ -165,7 +204,7 @@ def _export_csv(cats, rows) -> str:
     writer.writerow([
         "Laden-ID", "Laden", "Slug", "Adresse", "Bezirk", "Breitengrad",
         "Längengrad", "Google-Maps-Link", "Notiz", "Bewertungs-ID", "Autor",
-        "Besucht am", "Preis (EUR)", *[c["label"] for c in cats], "Gesamt",
+        "Autor-ID", "Besucht am", "Preis (EUR)", *[c["label"] for c in cats], "Gesamt",
         "Text", "Fotos",
     ])
     def safe(value):
@@ -248,6 +287,7 @@ def register_routes(app: FastAPI) -> None:
 
     @app.middleware("http")
     async def cookies_and_headers(request: Request, call_next):
+        request.state.request_id = request.headers.get("x-request-id") or uuid.uuid4().hex
         response = await call_next(request)
         fresh = getattr(request.state, "csrf", None)
         if fresh and "sg_csrf" not in request.cookies:
@@ -259,6 +299,17 @@ def register_routes(app: FastAPI) -> None:
                 samesite="lax",
                 secure=request.app.state.settings.secure_cookies,
             )
+        author_id = getattr(request.state, "author_id", None)
+        if author_id:
+            response.set_cookie(
+                "sg_author",
+                _auth(request).sign({"id": author_id}),
+                max_age=NAME_MAX_AGE,
+                httponly=True,
+                samesite="lax",
+                secure=request.app.state.settings.secure_cookies,
+            )
+        response.headers.setdefault("X-Request-ID", request.state.request_id)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
@@ -269,8 +320,8 @@ def register_routes(app: FastAPI) -> None:
             "Content-Security-Policy",
             "default-src 'self'; "
             "img-src 'self' data: blob: https://tile.openstreetmap.org; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            "font-src https://fonts.gstatic.com; "
+            "style-src 'self' 'unsafe-inline'; "
+            "font-src 'self'; "
             "script-src 'self' 'unsafe-inline'; "
             "connect-src 'self'; "
             "form-action 'self'; base-uri 'self'; frame-ancestors 'none'",
@@ -278,8 +329,24 @@ def register_routes(app: FastAPI) -> None:
         return response
 
     @app.get("/healthz")
-    async def healthz():
-        return JSONResponse({"ok": True})
+    async def healthz(request: Request):
+        settings = request.app.state.settings
+        db_ok = False
+        try:
+            conn = _conn(request)
+            try:
+                conn.execute("SELECT 1").fetchone()
+                db_ok = True
+            finally:
+                conn.close()
+        except Exception:
+            logger.exception("health check: database failed", extra={"request_id": request.state.request_id})
+        uploads_ok = settings.uploads_dir.is_dir() and os.access(settings.uploads_dir, os.W_OK)
+        ok = db_ok and uploads_ok
+        return JSONResponse(
+            {"ok": ok, "db": db_ok, "uploads": uploads_ok},
+            status_code=200 if ok else 503,
+        )
 
     @app.get("/manifest.webmanifest")
     async def manifest():
@@ -324,10 +391,12 @@ def register_routes(app: FastAPI) -> None:
             return render(request, "login.html", status=400, next="/", error="Sitzung abgelaufen. Nochmal.")
         key = client_key(request)
         if request.app.state.limiter.blocked(key):
-            return render(
+            response = render(
                 request, "login.html", status=429, next="/",
                 error="Zu viele Versuche. In zehn Minuten nochmal.",
             )
+            response.headers["Retry-After"] = str(request.app.state.limiter.window)
+            return response
         if not _auth(request).check_password(str(form.get("password", ""))):
             request.app.state.limiter.fail(key)
             return render(
@@ -336,6 +405,7 @@ def register_routes(app: FastAPI) -> None:
                 error="Falsches Passwort.",
             )
         request.app.state.limiter.reset(key)
+        ensure_author_id(request)
         target = safe_next(str(form.get("next", "/")))
         response = redirect(
             f"/wer?next={quote(target)}" if _needs_name(request) else target
@@ -395,6 +465,22 @@ def register_routes(app: FastAPI) -> None:
                 error="Bitte einen Namen mit 1–40 Zeichen.",
             )
         response = redirect(safe_next(str(form.get("next", "/"))))
+        previous = current_name(request) or ""
+        author_id = ensure_author_id(request)
+        if normalize_name(previous) != normalize_name(name):
+            author_id = uuid.uuid4().hex
+            request.state.author_id = author_id
+        else:
+            conn = _conn(request)
+            try:
+                conn.execute(
+                    "UPDATE reviews SET author_id = ? WHERE author_id IS NULL AND author = ? COLLATE NOCASE",
+                    (author_id, name),
+                )
+                conn.execute("UPDATE reviews SET author = ? WHERE author_id = ?", (name, author_id))
+                conn.commit()
+            finally:
+                conn.close()
         response.set_cookie(
             "sg_name",
             _auth(request).sign({"name": name}),
@@ -412,6 +498,7 @@ def register_routes(app: FastAPI) -> None:
             response = redirect("/login")
             response.delete_cookie("sg_auth")
             response.delete_cookie("sg_name")
+            response.delete_cookie("sg_author")
             return response
         return redirect("/")
 
@@ -455,7 +542,8 @@ def register_routes(app: FastAPI) -> None:
 
     @app.get("/laden/{slug}", response_class=HTMLResponse)
     async def shop_page(request: Request, slug: str):
-        require(request)
+        name = require(request)
+        author_id = current_author_id(request)
         conn = _conn(request)
         try:
             shop = db.shop_by_slug(conn, slug)
@@ -477,14 +565,30 @@ def register_routes(app: FastAPI) -> None:
             categories=categories,
             reviews=reviews,
             hero=hero,
+            mine_ids={review["id"] for review in reviews if is_author(review, name, author_id)},
             directions=maps.maps_link(shop["lat"], shop["lng"]),
             page="shop",
         )
 
     @app.get("/laeden/neu", response_class=HTMLResponse)
-    async def new_shop_form(request: Request):
+    async def new_shop_form(request: Request, link: str = ""):
         require(request)
-        return render(request, "new_shop.html", page="new")
+        return render(request, "new_shop.html", page="new", link=link[:2000])
+
+    @app.post("/teilen")
+    async def share_target(request: Request):
+        form = await request.form()
+        raw = " ".join(str(form.get(key, "")) for key in ("title", "text", "url"))
+        match = re.search(r"https?://[^\s<>\"']+", raw)
+        link = match.group(0).rstrip(".,)") if match else ""
+        if current_name(request) is None:
+            return redirect("/login?next=/laeden/neu")
+        if current_name(request) == "":
+            return redirect("/wer?next=/laeden/neu")
+        target = "/laeden/neu"
+        if link:
+            target += f"?link={quote(link, safe='')}"
+        return redirect(target)
 
     @app.post("/laeden/neu")
     async def new_shop_lookup(request: Request):
@@ -575,6 +679,7 @@ def register_routes(app: FastAPI) -> None:
     @app.post("/laden/{slug}/bewerten")
     async def review_create(request: Request, slug: str):
         name = require(request)
+        author_id = ensure_author_id(request)
         form = await request.form()
         conn = _conn(request)
         try:
@@ -600,6 +705,7 @@ def register_routes(app: FastAPI) -> None:
                 conn,
                 shop_id=shop["id"],
                 author=name,
+                author_id=author_id,
                 body=str(form.get("body", "")).strip()[:4000],
                 visited_on=valid_date(str(form.get("visited_on"))),
                 price_eur=parse_price(str(form.get("price", ""))),
@@ -625,29 +731,39 @@ def register_routes(app: FastAPI) -> None:
         uploads = [u for u in uploads if getattr(u, "filename", "")]
         if start + len(uploads) > MAX_PHOTOS:
             return {"error": f"Höchstens {MAX_PHOTOS} Fotos pro Bewertung.", "count": 0}
-        for offset, upload in enumerate(uploads):
+        existing = {row["sha256"] for row in db.review_images(conn, review_id) if row["sha256"]}
+        position = start
+        saved = 0
+        for upload in uploads:
             try:
                 data = await run_in_threadpool(images.read_limited, upload)
                 processed = await run_in_threadpool(
                     images.process, data, settings.uploads_dir, request.app.state.thumbs
                 )
             except images.ImageError as exc:
-                return {"error": str(exc), "count": offset}
+                return {"error": str(exc), "count": saved}
+            if processed["sha256"] in existing:
+                remove_files(settings, [processed])
+                continue
             db.add_image(
                 conn, review_id,
                 file=processed["file"], thumb=processed["thumb"],
                 width=processed["width"], height=processed["height"],
-                position=start + offset,
+                sha256=processed["sha256"], position=position,
             )
-        return {"error": None, "count": len(uploads)}
+            existing.add(processed["sha256"])
+            position += 1
+            saved += 1
+        return {"error": None, "count": saved}
 
     @app.get("/bewertungen/{review_id}/bearbeiten", response_class=HTMLResponse)
     async def review_edit_form(request: Request, review_id: int):
         name = require(request)
+        author_id = current_author_id(request)
         conn = _conn(request)
         try:
             review = db.review_by_id(conn, review_id)
-            if not review or review["author"] != name:
+            if not review or not is_author(review, name, author_id):
                 return render(request, "404.html", status=404)
             shop = conn.execute(
                 "SELECT * FROM shops WHERE id = ?", (review["shop_id"],)
@@ -666,11 +782,12 @@ def register_routes(app: FastAPI) -> None:
     @app.post("/bewertungen/{review_id}")
     async def review_update(request: Request, review_id: int):
         name = require(request)
+        author_id = ensure_author_id(request)
         form = await request.form()
         conn = _conn(request)
         try:
             review = db.review_by_id(conn, review_id)
-            if not review or review["author"] != name:
+            if not review or not is_author(review, name, author_id):
                 return render(request, "404.html", status=404)
             shop = conn.execute("SELECT * FROM shops WHERE id = ?", (review["shop_id"],)).fetchone()
             categories = db.categories(conn)
@@ -692,7 +809,7 @@ def register_routes(app: FastAPI) -> None:
                               error="Noch Punkte vergeben für: " + ", ".join(missing) + ".",
                               page="review")
             db.update_review(
-                conn, review_id, author=name,
+                conn, review_id, author=name, author_id=author_id,
                 body=str(form.get("body", "")).strip()[:4000],
                 visited_on=valid_date(str(form.get("visited_on"))),
                 price_eur=parse_price(str(form.get("price", ""))),
@@ -722,11 +839,12 @@ def register_routes(app: FastAPI) -> None:
     @app.post("/bewertungen/{review_id}/loeschen")
     async def review_delete(request: Request, review_id: int):
         name = require(request)
+        author_id = current_author_id(request)
         form = await request.form()
         conn = _conn(request)
         try:
             review = db.review_by_id(conn, review_id)
-            if not review or review["author"] != name:
+            if not review or not is_author(review, name, author_id):
                 return render(request, "404.html", status=404)
             shop = conn.execute("SELECT slug FROM shops WHERE id = ?", (review["shop_id"],)).fetchone()
             if csrf_ok(request.cookies.get("sg_csrf"), form.get("csrf")):
@@ -814,9 +932,10 @@ def register_routes(app: FastAPI) -> None:
     @app.get("/ich", response_class=HTMLResponse)
     async def my_page(request: Request):
         name = require(request)
+        author_id = current_author_id(request)
         conn = _conn(request)
         try:
-            reviews = db.reviews_by_author(conn, name)
+            reviews = db.reviews_by_author(conn, name, author_id)
         finally:
             conn.close()
         return render(request, "me.html", reviews=reviews, page="me")
@@ -831,6 +950,13 @@ def register_routes(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def server_error(request: Request, exc):
+        logger.error(
+            "unhandled request: %s %s request_id=%s",
+            request.method,
+            request.url.path,
+            getattr(request.state, "request_id", "-"),
+            exc_info=exc,
+        )
         return render(request, "500.html", status=500)
 
 

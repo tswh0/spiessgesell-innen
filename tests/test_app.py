@@ -1,4 +1,5 @@
 import io
+import json
 import re
 import zipfile
 from pathlib import Path
@@ -138,6 +139,79 @@ def test_csp_allows_blob_previews(browser: TestClient):
     csp = browser.get("/login").headers["content-security-policy"]
     assert "img-src 'self' data: blob:" in csp
     assert "frame-ancestors 'none'" in csp
+    assert "fonts.googleapis.com" not in csp
+
+
+def test_health_and_request_id(browser: TestClient):
+    response = browser.get("/healthz")
+    assert response.status_code == 200
+    assert response.json() == {"ok": True, "db": True, "uploads": True}
+    assert response.headers["x-request-id"]
+
+
+def test_manifest_share_target(browser: TestClient):
+    manifest = json.loads(browser.get("/manifest.webmanifest").text)
+    assert manifest["share_target"]["action"] == "/teilen"
+    assert manifest["share_target"]["method"] == "POST"
+
+
+def test_share_target(browser: TestClient, app):
+    login(browser)
+    response = browser.post(
+        "/teilen",
+        data={"url": "https://maps.app.goo.gl/abc", "text": "Hasir"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/laeden/neu?link=https%3A%2F%2Fmaps.app.goo.gl%2Fabc"
+
+    anonymous = TestClient(app)
+    response = anonymous.post(
+        "/teilen", data={"url": "https://maps.app.goo.gl/abc"}, follow_redirects=False
+    )
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("/login")
+
+
+def test_name_change_case_keeps_review(place, browser: TestClient):
+    login(browser, "tom")
+    slug = add_shop(browser, place)
+    token = csrf(browser, f"/laden/{slug}/bewerten")
+    browser.post(
+        f"/laden/{slug}/bewerten",
+        data=review_payload(token),
+        follow_redirects=False,
+    )
+    page = browser.get(f"/laden/{slug}").text
+    match = re.search(r"/bewertungen/(\d+)/bearbeiten", page)
+    assert match
+    review_id = match.group(1)
+
+    token = csrf(browser, "/wer")
+    browser.post("/wer", data={"csrf": token, "name": "Tom", "next": "/"}, follow_redirects=False)
+    assert browser.get(f"/bewertungen/{review_id}/bearbeiten").status_code == 200
+    assert "Test Döner" in browser.get("/ich").text
+
+
+def test_login_rate_limit_persists(browser: TestClient, app):
+    token = csrf(browser)
+    for _ in range(8):
+        response = browser.post(
+            "/login", data={"csrf": token, "password": "wrong", "next": "/"}
+        )
+        assert response.status_code == 401
+    response = browser.post(
+        "/login", data={"csrf": token, "password": "wrong", "next": "/"}
+    )
+    assert response.status_code == 429
+    assert response.headers["retry-after"] == "600"
+
+    fresh = TestClient(app)
+    token = csrf(fresh)
+    response = fresh.post(
+        "/login", data={"csrf": token, "password": "wrong", "next": "/"}
+    )
+    assert response.status_code == 429
 
 
 def test_wrong_password(browser: TestClient):
@@ -264,6 +338,25 @@ def test_export_csv(place, browser: TestClient, app):
         assert "Test Döner" in text
         assert "fotos/" in text
         assert "/uploads/" not in text
+
+
+def test_duplicate_photos_are_skipped(place, browser: TestClient, app):
+    login(browser)
+    slug = add_shop(browser, place)
+    token = csrf(browser, f"/laden/{slug}/bewerten")
+    response = browser.post(
+        f"/laden/{slug}/bewerten",
+        data=review_payload(token),
+        files=[
+            ("photos", ("doener.jpg", jpeg(), "image/jpeg")),
+            ("photos", ("doener.jpg", jpeg(), "image/jpeg")),
+        ],
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    uploads = app.state.settings.uploads_dir
+    assert len(list(uploads.glob("*.webp"))) == 1
+    assert len(list((uploads / "thumbs").glob("*.webp"))) == 1
 
 
 def test_scores_are_required(place, browser: TestClient):

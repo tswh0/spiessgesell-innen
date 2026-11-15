@@ -9,6 +9,16 @@
   "orientation": "portrait-primary",
   "background_color": "#e8e8e3",
   "theme_color": "#e8e8e3",
+  "share_target": {
+    "action": "/teilen",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "icons": [
     {
       "src": "/static/brand/icon-192.png",

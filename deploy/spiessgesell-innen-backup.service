@@ -1,0 +1,12 @@
+[Unit]
+Description=spießgesell:innen backup
+After=spiessgesell-innen.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/hermes/work/doner
+EnvironmentFile=/home/hermes/work/doner/.env
+Environment=DATA_DIR=/home/hermes/work/doner/data-prod
+Environment=BACKUP_DIR=/home/hermes/backups/spiessgesell-innen
+Environment=BACKUP_KEEP=14
+ExecStart=/home/hermes/work/doner/.venv/bin/python scripts/backup.py

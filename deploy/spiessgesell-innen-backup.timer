@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly spießgesell:innen backup
+Requires=spiessgesell-innen-backup.service
+
+[Timer]
+OnCalendar=*-*-* 03:15:00
+Persistent=true
+RandomizedDelaySec=20m
+
+[Install]
+WantedBy=timers.target

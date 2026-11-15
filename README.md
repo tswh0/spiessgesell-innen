@@ -9,10 +9,10 @@ A few friends and I meet up for döner around Berlin and argue about which place
 
 ## What it does
 
-- Add a shop by pasting a Google Maps link. The name, street and district come from the link, and you can correct them before saving.
-- Each review has a visit date, five 1–10 scores, optional text and price, and up to six photos. Photos are converted to WebP and stripped of EXIF data.
+- Add a shop by pasting a Google Maps link, or share one straight into the installed app. The name, street and district come from the link, and you can correct them before saving.
+- Each review has a visit date, five 1–10 scores, optional text and price, and up to six photos. Photos are converted to WebP and stripped of EXIF data; tap one for the full-screen gallery.
 - The map and ranking update from the reviews. The ranking shows the best overall and per category.
-- Everyone uses the same password and picks a name. That name is the only ownership check, so anyone using it can edit or delete its reviews.
+- Everyone uses the same password and picks a name. The browser also keeps a small identity cookie, so two people with the same name don't edit each other's reviews.
 
 ## Run it
 
@@ -37,6 +37,14 @@ Data lives in the `data` volume. Back it up with:
 docker run --rm -v spiessgesell-innen_data:/data -v "$PWD":/backup alpine tar czf /backup/data.tgz -C /data .
 ```
 
+For automatic nightly backups in Docker, enable the backup profile:
+
+```sh
+docker compose --profile backup up -d
+```
+
+It writes a ZIP of the SQLite database and uploads into the `backups` volume every night at 03:15 and keeps the last 14.
+
 ## Local development
 
 ```sh
@@ -52,6 +60,7 @@ Run `pytest` for the tests. The seed script adds three Berlin shops; `scripts/re
 
 ## Notes
 
-- SQLite and uploads sit in one volume. Map tiles, fonts and reverse geocoding come from public services; there are no API keys.
+- SQLite and uploads sit in one volume. Map tiles and reverse geocoding come from public services; the fonts are bundled, and there are no API keys.
 - The PWA installs from the browser and keeps working offline.
+- `/healthz` checks SQLite and the uploads directory; Docker uses it as its healthcheck.
 - GitHub Actions builds a multi-arch image on every published release. Tags follow `v1.0.0`, `1.0.0`, `1.0` and `latest`.

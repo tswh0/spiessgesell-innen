@@ -1,3 +1,4 @@
+import hashlib
 import io
 import uuid
 from pathlib import Path
@@ -34,6 +35,7 @@ def process(data: bytes, uploads_dir: Path, thumb_dir: Path) -> dict:
             web.thumbnail((WEB_MAX, WEB_MAX), Image.LANCZOS)
             web_path = uploads_dir / f"{stem}.webp"
             web.save(web_path, "WEBP", quality=82, method=4)
+            digest = hashlib.sha256(web_path.read_bytes()).hexdigest()
 
             thumb = image.copy()
             thumb.thumbnail((THUMB_MAX, THUMB_MAX), Image.LANCZOS)
@@ -45,6 +47,7 @@ def process(data: bytes, uploads_dir: Path, thumb_dir: Path) -> dict:
                 "thumb": thumb_path.name,
                 "width": web.width,
                 "height": web.height,
+                "sha256": digest,
             }
     except (OSError, Image.DecompressionBombError) as exc:
         raise ImageError("Datei ist kein lesbares Bild.") from exc

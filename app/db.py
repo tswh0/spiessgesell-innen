@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS reviews (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     shop_id     INTEGER NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
     author      TEXT NOT NULL,
+    author_id   TEXT,
     body        TEXT NOT NULL DEFAULT '',
     visited_on  TEXT NOT NULL,
     price_eur   REAL,
@@ -56,7 +57,14 @@ CREATE TABLE IF NOT EXISTS review_images (
     thumb      TEXT NOT NULL,
     width      INTEGER NOT NULL,
     height     INTEGER NOT NULL,
+    sha256     TEXT,
     position   INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+    key       TEXT PRIMARY KEY,
+    failures  INTEGER NOT NULL,
+    reset_at  REAL NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_reviews_shop ON reviews(shop_id, visited_on DESC);
@@ -82,6 +90,7 @@ def connect(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path, timeout=10)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 5000")
     return conn
 
 
@@ -94,10 +103,21 @@ def init_db(settings) -> None:
     conn = connect(settings.db_path)
     try:
         conn.executescript(SCHEMA)
+        _migrate(conn)
         seed_categories(conn, settings.categories_file)
         conn.commit()
     finally:
         conn.close()
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(reviews)")}
+    if "author_id" not in columns:
+        conn.execute("ALTER TABLE reviews ADD COLUMN author_id TEXT")
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(review_images)")}
+    if "sha256" not in columns:
+        conn.execute("ALTER TABLE review_images ADD COLUMN sha256 TEXT")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_reviews_author_id ON reviews(author_id)")
 
 
 def seed_categories(conn: sqlite3.Connection, path: Path) -> None:
@@ -263,13 +283,13 @@ def create_shop(conn, *, name, address, district, lat, lng, google_maps_url, not
     return cur.lastrowid
 
 
-def create_review(conn, *, shop_id, author, body, visited_on, price_eur, scores) -> int:
+def create_review(conn, *, shop_id, author, author_id, body, visited_on, price_eur, scores) -> int:
     cur = conn.execute(
         """
-        INSERT INTO reviews (shop_id, author, body, visited_on, price_eur)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO reviews (shop_id, author, author_id, body, visited_on, price_eur)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (shop_id, author, body, visited_on, price_eur),
+        (shop_id, author, author_id, body, visited_on, price_eur),
     )
     review_id = cur.lastrowid
     for key, score in scores.items():
@@ -280,14 +300,15 @@ def create_review(conn, *, shop_id, author, body, visited_on, price_eur, scores)
     return review_id
 
 
-def update_review(conn, review_id: int, *, author, body, visited_on, price_eur, scores) -> None:
+def update_review(conn, review_id: int, *, author, author_id, body, visited_on, price_eur, scores) -> None:
     conn.execute(
         """
-        UPDATE reviews SET author = ?, body = ?, visited_on = ?, price_eur = ?,
+        UPDATE reviews SET author = ?, author_id = COALESCE(author_id, ?),
+                           body = ?, visited_on = ?, price_eur = ?,
                            updated_at = datetime('now')
         WHERE id = ?
         """,
-        (author, body, visited_on, price_eur, review_id),
+        (author, author_id, body, visited_on, price_eur, review_id),
     )
     conn.execute("DELETE FROM review_scores WHERE review_id = ?", (review_id,))
     for key, score in scores.items():
@@ -297,13 +318,13 @@ def update_review(conn, review_id: int, *, author, body, visited_on, price_eur, 
         )
 
 
-def add_image(conn, review_id: int, *, file, thumb, width, height, position) -> None:
+def add_image(conn, review_id: int, *, file, thumb, width, height, sha256, position) -> None:
     conn.execute(
         """
-        INSERT INTO review_images (review_id, file, thumb, width, height, position)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO review_images (review_id, file, thumb, width, height, sha256, position)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (review_id, file, thumb, width, height, position),
+        (review_id, file, thumb, width, height, sha256, position),
     )
 
 
@@ -342,16 +363,25 @@ def known_authors(conn):
     ]
 
 
-def reviews_by_author(conn, author: str):
+def reviews_by_author(conn, author: str, author_id: str | None = None):
+    if author_id:
+        where = (
+            "(r.author_id = ? AND r.author = ? COLLATE NOCASE) "
+            "OR (r.author_id IS NULL AND r.author = ? COLLATE NOCASE)"
+        )
+        params = (author_id, author, author)
+    else:
+        where = "r.author_id IS NULL AND r.author = ? COLLATE NOCASE"
+        params = (author,)
     return conn.execute(
-        """
+        f"""
         SELECT r.*, ro.score, s.name AS shop_name, s.slug AS shop_slug
         FROM reviews r
         JOIN shops s ON s.id = r.shop_id
         LEFT JOIN review_overall ro ON ro.review_id = r.id
-        WHERE r.author = ? ORDER BY r.visited_on DESC, r.id DESC
+        WHERE {where} ORDER BY r.visited_on DESC, r.id DESC
         """,
-        (author,),
+        params,
     ).fetchall()
 
 

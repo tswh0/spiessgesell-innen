@@ -5,7 +5,9 @@
 <article class="sg-shop">
   {% if hero %}
   <figure class="sg-hero">
-    <img src="/uploads/{{ hero.file }}" alt="Döner bei {{ shop.name }}" width="{{ hero.width }}" height="{{ hero.height }}" fetchpriority="high">
+    <a class="sg-hero__link" href="/uploads/{{ hero.file }}" data-gallery data-full="/uploads/{{ hero.file }}" data-alt="Döner bei {{ shop.name }}" data-caption="{{ shop.name }}">
+      <img src="/uploads/{{ hero.file }}" alt="Döner bei {{ shop.name }}" width="{{ hero.width }}" height="{{ hero.height }}" fetchpriority="high">
+    </a>
   </figure>
   {% endif %}
 
@@ -71,14 +73,14 @@
         {% if shots %}
         <div class="sg-shots">
           {% for image in shots %}
-          <a class="sg-shot" href="/uploads/{{ image.file }}" target="_blank" rel="noopener">
-            <img src="/uploads/thumbs/{{ image.thumb }}" alt="Foto von {{ shop.name }} von {{ review.author }}" loading="lazy" width="{{ image.width }}" height="{{ image.height }}">
+          <a class="sg-shot" href="/uploads/{{ image.file }}" target="_blank" rel="noopener" data-gallery data-full="/uploads/{{ image.file }}" data-alt="Foto von {{ shop.name }} von {{ review.author }}" data-caption="{{ shop.name }} · {{ review.author }}">
+            <img src="/uploads/thumbs/{{ image.thumb }}" srcset="/uploads/thumbs/{{ image.thumb }} 480w, /uploads/{{ image.file }} {{ image.width }}w" sizes="(max-width: 639px) 45vw, 220px" alt="Foto von {{ shop.name }} von {{ review.author }}" loading="lazy" width="{{ image.width }}" height="{{ image.height }}">
           </a>
           {% endfor %}
         </div>
         {% endif %}
         {% endif %}
-        {% if review.author == current_name %}
+        {% if review.id in mine_ids %}
         <p class="sg-review__own">
           <a class="link link--arrow" href="/bewertungen/{{ review.id }}/bearbeiten"><span class="link__text">Bearbeiten</span></a>
         </p>
@@ -93,4 +95,15 @@
   </section>
   </div>
 </article>
+<dialog class="sg-gallery" aria-label="Fotos">
+  <div class="sg-gallery__top">
+    <span class="sg-gallery__count" data-gallery-count aria-live="polite"></span>
+    <button class="sg-gallery__close" type="button" data-gallery-close>Schließen</button>
+  </div>
+  <button class="sg-gallery__nav sg-gallery__prev" type="button" data-gallery-prev aria-label="Vorheriges Foto">←</button>
+  <img class="sg-gallery__img" alt="">
+  <button class="sg-gallery__nav sg-gallery__next" type="button" data-gallery-next aria-label="Nächstes Foto">→</button>
+  <p class="sg-gallery__caption" data-gallery-caption></p>
+</dialog>
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', path='gallery.js') }}" defer></script>{% endblock %}

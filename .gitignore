@@ -14,3 +14,4 @@ shots/
 *.sqlite3
 *.sqlite
 backup-*
+backups/

@@ -1,7 +1,9 @@
 import hmac
 import re
 import secrets
+import sqlite3
 import time
+from pathlib import Path
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError, VerifyMismatchError
@@ -52,23 +54,59 @@ def csrf_ok(cookie: str | None, submitted: str | None) -> bool:
 
 
 class LoginLimiter:
-    def __init__(self, limit: int = 8, window: int = 600):
+    def __init__(self, db_path: Path, limit: int = 8, window: int = 600):
+        self.db_path = db_path
         self.limit = limit
         self.window = window
-        self._hits: dict[str, tuple[int, float]] = {}
+        with self._connect() as conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS login_attempts (
+                    key       TEXT PRIMARY KEY,
+                    failures  INTEGER NOT NULL,
+                    reset_at  REAL NOT NULL
+                )
+                """
+            )
+
+    def _connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path, timeout=5)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA busy_timeout = 5000")
+        return conn
 
     def blocked(self, key: str) -> bool:
-        count, reset = self._hits.get(key, (0, 0.0))
-        if time.monotonic() > reset:
-            return False
-        return count >= self.limit
+        now = time.time()
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT failures, reset_at FROM login_attempts WHERE key = ?", (key,)
+            ).fetchone()
+            if not row:
+                return False
+            if row["reset_at"] <= now:
+                conn.execute("DELETE FROM login_attempts WHERE key = ?", (key,))
+                return False
+            return row["failures"] >= self.limit
 
     def fail(self, key: str) -> None:
-        count, reset = self._hits.get(key, (0, 0.0))
-        now = time.monotonic()
-        if now > reset:
-            count, reset = 0, now + self.window
-        self._hits[key] = (count + 1, reset)
+        now = time.time()
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT failures, reset_at FROM login_attempts WHERE key = ?", (key,)
+            ).fetchone()
+            if not row or row["reset_at"] <= now:
+                conn.execute(
+                    """
+                    INSERT INTO login_attempts (key, failures, reset_at) VALUES (?, 1, ?)
+                    ON CONFLICT(key) DO UPDATE SET failures = 1, reset_at = excluded.reset_at
+                    """,
+                    (key, now + self.window),
+                )
+            else:
+                conn.execute(
+                    "UPDATE login_attempts SET failures = failures + 1 WHERE key = ?", (key,)
+                )
 
     def reset(self, key: str) -> None:
-        self._hits.pop(key, None)
+        with self._connect() as conn:
+            conn.execute("DELETE FROM login_attempts WHERE key = ?", (key,))

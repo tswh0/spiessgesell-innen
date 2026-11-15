@@ -8,8 +8,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN useradd --create-home --uid 10001 app \
-    && mkdir -p /data \
-    && chown app:app /data
+    && mkdir -p /data /backups \
+    && chown app:app /data /backups
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

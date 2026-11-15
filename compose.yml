@@ -16,5 +16,20 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  backup:
+    image: ghcr.io/tswh0/spiessgesell-innen:${IMAGE_TAG:-latest}
+    profiles: ["backup"]
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      BACKUP_DIR: /backups
+      BACKUP_KEEP: "14"
+    volumes:
+      - data:/data
+      - backups:/backups
+    command: ["python", "scripts/backup.py", "--loop"]
+
 volumes:
   data:
+  backups:

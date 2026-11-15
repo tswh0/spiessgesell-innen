@@ -1,14 +1,20 @@
-const CACHE = "ssg-v8";
+const CACHE = "ssg-v10";
 const ASSETS = [
   "/offline",
   "/manifest.webmanifest",
   "/static/app.css",
+  "/static/fonts.css",
+  "/static/fonts/rethink-sans.woff2",
+  "/static/fonts/zilla-slab-400.woff2",
+  "/static/fonts/zilla-slab-500.woff2",
+  "/static/fonts/zilla-slab-600.woff2",
   "/static/vendor/system.css",
   "/static/vendor/leaflet.css",
   "/static/vendor/system.js",
   "/static/vendor/leaflet.js",
   "/static/map.js",
   "/static/form.js",
+  "/static/gallery.js",
   "/static/pwa.js",
   "/static/ui.js",
   "/static/brand/mark.svg",
