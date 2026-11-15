@@ -63,4 +63,4 @@ Run `pytest` for the tests. The seed script adds three Berlin shops; `scripts/re
 - SQLite and uploads sit in one volume. Map tiles and reverse geocoding come from public services; the fonts are bundled, and there are no API keys.
 - The PWA installs from the browser and keeps working offline.
 - `/healthz` checks SQLite and the uploads directory; Docker uses it as its healthcheck.
-- GitHub Actions builds a multi-arch image on every published release. Tags follow `v1.0.0`, `1.0.0`, `1.0` and `latest`.
+- GitHub Actions builds a multi-arch image on every published release. Tags follow semantic versions such as `v1.1.0`, `1.1.0` and `1.1`, plus `latest`.
