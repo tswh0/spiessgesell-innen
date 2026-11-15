@@ -3,15 +3,18 @@ name: spiessgesell-innen
 services:
   app:
     build: .
-    image: spiessgesell-innen:local
+    image: ghcr.io/tswh0/spiessgesell-innen:${IMAGE_TAG:-latest}
     container_name: spiessgesell-innen
     restart: unless-stopped
     env_file: .env
     environment:
       DATA_DIR: /data
     volumes:
-      - ./data:/data
+      - data:/data
     ports:
       - "127.0.0.1:${APP_PORT:-8095}:8000"
     security_opt:
       - no-new-privileges:true
+
+volumes:
+  data:
