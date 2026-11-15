@@ -4,6 +4,13 @@ data-prod/
 __pycache__/
 *.pyc
 .env
+.env.*
+!.env.example
 .taste-skill/
 shots/
 .pytest_cache/
+.DS_Store
+*.log
+*.sqlite3
+*.sqlite
+backup-*
