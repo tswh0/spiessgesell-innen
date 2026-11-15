@@ -37,13 +37,7 @@ Data lives in the `data` volume. Back it up with:
 docker run --rm -v spiessgesell-innen_data:/data -v "$PWD":/backup alpine tar czf /backup/data.tgz -C /data .
 ```
 
-For automatic nightly backups in Docker, enable the backup profile:
-
-```sh
-docker compose --profile backup up -d
-```
-
-It writes a ZIP of the SQLite database and uploads into the `backups` volume every night at 03:15 and keeps the last 14.
+The app writes a backup ZIP at 03:15 into the `backups` volume and keeps the last 14. `BACKUP_AT` and `BACKUP_KEEP` change that. The tar command above is there if you want a full volume copy instead.
 
 ## Local development
 

@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import io
 import json
@@ -6,6 +7,7 @@ import os
 import re
 import uuid
 import zipfile
+from contextlib import asynccontextmanager
 from datetime import date
 from pathlib import Path
 from urllib.parse import quote
@@ -16,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.concurrency import run_in_threadpool
 
-from . import db, images, maps
+from . import backup, db, images, maps
 from .config import Settings, load
 from .security import Auth, LoginLimiter, clean_name, csrf_ok, new_csrf
 
@@ -45,7 +47,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     thumbs.mkdir(parents=True, exist_ok=True)
     db.init_db(settings)
 
-    app = FastAPI(title="spießgesell:innen", docs_url=None, redoc_url=None)
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        stop = asyncio.Event()
+        task = None
+        if settings.backup_enabled:
+            task = asyncio.create_task(
+                backup.scheduler(
+                    settings.data_dir,
+                    settings.effective_backup_dir,
+                    settings.backup_keep,
+                    settings.backup_at,
+                    stop,
+                )
+            )
+        yield
+        if task:
+            stop.set()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+    app = FastAPI(title="spießgesell:innen", docs_url=None, redoc_url=None, lifespan=lifespan)
     app.state.settings = settings
     app.state.auth = Auth(settings.shared_password, settings.secret_key)
     app.state.limiter = LoginLimiter(settings.db_path)

@@ -9,26 +9,18 @@ services:
     env_file: .env
     environment:
       DATA_DIR: /data
+      BACKUP_ENABLED: "1"
+      BACKUP_DIR: /backups
+      BACKUP_KEEP: "14"
+      BACKUP_AT: "03:15"
+      TZ: ${TZ:-Europe/Berlin}
     volumes:
       - data:/data
+      - backups:/backups
     ports:
       - "127.0.0.1:${APP_PORT:-8095}:8000"
     security_opt:
       - no-new-privileges:true
-
-  backup:
-    image: ghcr.io/tswh0/spiessgesell-innen:${IMAGE_TAG:-latest}
-    profiles: ["backup"]
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      DATA_DIR: /data
-      BACKUP_DIR: /backups
-      BACKUP_KEEP: "14"
-    volumes:
-      - data:/data
-      - backups:/backups
-    command: ["python", "scripts/backup.py", "--loop"]
 
 volumes:
   data:

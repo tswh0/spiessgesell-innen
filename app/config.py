@@ -10,6 +10,10 @@ class Settings:
     shared_password: str
     base_url: str
     categories_file: Path
+    backup_enabled: bool = False
+    backup_dir: Path | None = None
+    backup_keep: int = 14
+    backup_at: str = "03:15"
 
     @property
     def db_path(self) -> Path:
@@ -18,6 +22,10 @@ class Settings:
     @property
     def uploads_dir(self) -> Path:
         return self.data_dir / "uploads"
+
+    @property
+    def effective_backup_dir(self) -> Path:
+        return self.backup_dir or self.data_dir / "backups"
 
     @property
     def secure_cookies(self) -> bool:
@@ -37,10 +45,20 @@ def load() -> Settings:
         secret_key == "dev-only-change-me" or shared_password == "doener"
     ):
         raise RuntimeError("Set SECRET_KEY and SHARED_PASSWORD before serving over HTTPS.")
+    backup_enabled = os.environ.get("BACKUP_ENABLED", "").lower() in ("1", "true", "yes", "on")
+    backup_dir = Path(os.environ.get("BACKUP_DIR", data_dir / "backups")).resolve()
+    try:
+        backup_keep = max(1, int(os.environ.get("BACKUP_KEEP", "14")))
+    except ValueError:
+        backup_keep = 14
     return Settings(
         data_dir=data_dir,
         secret_key=secret_key,
         shared_password=shared_password,
         base_url=base_url,
         categories_file=categories_file,
+        backup_enabled=backup_enabled,
+        backup_dir=backup_dir,
+        backup_keep=backup_keep,
+        backup_at=os.environ.get("BACKUP_AT", "03:15"),
     )
