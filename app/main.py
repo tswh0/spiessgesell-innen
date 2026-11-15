@@ -212,6 +212,8 @@ def register_routes(app: FastAPI) -> None:
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault("X-Robots-Tag", "noindex, nofollow")
+        if response.headers.get("content-type", "").startswith("text/html"):
+            response.headers["Cache-Control"] = "no-store"
         response.headers.setdefault(
             "Content-Security-Policy",
             "default-src 'self'; "

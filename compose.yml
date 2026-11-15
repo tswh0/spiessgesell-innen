@@ -1,3 +1,5 @@
+name: spiessgesell-innen
+
 services:
   app:
     build: .

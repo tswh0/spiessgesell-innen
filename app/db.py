@@ -88,6 +88,9 @@ def connect(db_path: Path) -> sqlite3.Connection:
 def init_db(settings) -> None:
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.uploads_dir.mkdir(parents=True, exist_ok=True)
+    legacy = settings.data_dir / "spiessgesellen.sqlite3"
+    if legacy.exists() and not settings.db_path.exists():
+        legacy.rename(settings.db_path)
     conn = connect(settings.db_path)
     try:
         conn.executescript(SCHEMA)

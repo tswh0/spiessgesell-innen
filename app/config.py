@@ -13,7 +13,7 @@ class Settings:
 
     @property
     def db_path(self) -> Path:
-        return self.data_dir / "spiessgesellen.sqlite3"
+        return self.data_dir / "spiessgesell-innen.sqlite3"
 
     @property
     def uploads_dir(self) -> Path:

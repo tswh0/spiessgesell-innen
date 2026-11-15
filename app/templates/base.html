@@ -14,6 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="{{ url_for('static', path='brand/favicon.svg') }}" type="image/svg+xml">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', path='brand/icon-32.png') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', path='brand/icon-180.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,7 +28,7 @@
 <header class="nav">
   <div class="wrap nav__bar">
     <a class="skip-link" href="#top">Zum Inhalt</a>
-    <a class="nav__logo" href="/"><img class="brand-mark" src="{{ url_for('static', path='brand/mark.svg') }}" alt="" width="24" height="24">spießgesell:innen</a>
+    <a class="nav__logo" href="/" aria-label="spießgesell:innen"><img class="brand-mark" src="{{ url_for('static', path='brand/mark.svg') }}" alt="" width="24" height="24"><span class="nav__wordmark">spießgesell:innen</span></a>
     <nav class="nav__links" aria-label="Hauptmenü">
       <div class="nav__item"><a class="nav__link" href="/" {% if page == 'home' %}aria-current="page"{% endif %}>Karte</a></div>
       <div class="nav__item"><a class="nav__link" href="/rangliste" {% if page == 'ranking' %}aria-current="page"{% endif %}>Rangliste</a></div>

@@ -14,7 +14,7 @@ class Auth:
     def __init__(self, password: str, secret: str):
         self._hasher = PasswordHasher()
         self._hash = self._hasher.hash(password)
-        self._serializer = URLSafeTimedSerializer(secret, salt="spiessgesellen")
+        self._serializer = URLSafeTimedSerializer(secret, salt="spiessgesell-innen")
 
     def check_password(self, password: str) -> bool:
         try:

@@ -1,6 +1,6 @@
 [Unit]
 Description=Quick Cloudflare tunnel for spießgesell:innen (temporary)
-After=network-online.target spiessgesellen.service
+After=network-online.target spiessgesell-innen.service
 
 [Service]
 Type=simple

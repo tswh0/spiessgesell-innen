@@ -47,7 +47,7 @@ curl http://127.0.0.1:8095/healthz
 Data lives in `./data` (SQLite + uploads), mounted at `/data`. Back it up with:
 
 ```sh
-sqlite3 data/spiessgesellen.sqlite3 ".backup 'backup-$(date +%F).sqlite3'"
+sqlite3 data/spiessgesell-innen.sqlite3 ".backup 'backup-$(date +%F).sqlite3'"
 rsync -a data/uploads/ backup-uploads/
 ```
 

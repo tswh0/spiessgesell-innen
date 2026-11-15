@@ -5,16 +5,16 @@ delivery path for the real host (`compose.yml`).
 
 ```sh
 mkdir -p ~/.config/systemd/user
-cp deploy/spiessgesellen.service deploy/spiessgesellen-tunnel.service ~/.config/systemd/user/
+cp deploy/spiessgesell-innen.service deploy/spiessgesell-innen-tunnel.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now spiessgesellen spiessgesellen-tunnel
+systemctl --user enable --now spiessgesell-innen spiessgesell-innen-tunnel
 ```
 
 - App: `127.0.0.1:8095`, `DATA_DIR=~/work/doner/data-prod`, env in `~/work/doner/.env`.
 - URL: quick tunnel. The hostname changes on every tunnel restart:
 
   ```sh
-  journalctl --user -u spiessgesellen-tunnel -n 40 --no-pager | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1
+  journalctl --user -u spiessgesell-innen-tunnel -n 40 --no-pager | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1
   ```
 
 - `doner.twh0.de`: add it to the existing named tunnel `test-twh0` in Zero Trust →
