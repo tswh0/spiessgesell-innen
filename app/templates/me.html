@@ -20,7 +20,7 @@
         {% if review.body %}<p class="t-small muted">{{ review.body[:160] }}{% if review.body|length > 160 %}…{% endif %}</p>{% endif %}
       </div>
       <span class="sg-mine__score">{{ review.score|score }}</span>
-      <a class="link link--arrow t-small" href="/bewertungen/{{ review.id }}/bearbeiten">Bearbeiten</a>
+      <a class="link link--arrow t-small" href="/bewertungen/{{ review.id }}/bearbeiten"><span class="link__text">Bearbeiten</span></a>
     </li>
     {% endfor %}
   </ol>

@@ -1,10 +1,12 @@
+import csv
+import io
 import json
 from datetime import date
 from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.concurrency import run_in_threadpool
@@ -709,6 +711,64 @@ def register_routes(app: FastAPI) -> None:
         return render(
             request, "ranking.html", rows=parsed, leaders=leaders,
             categories=categories, page="ranking",
+        )
+
+    @app.get("/export.csv")
+    async def export_csv(request: Request):
+        require(request)
+        conn = _conn(request)
+        try:
+            cats = db.categories(conn)
+            shops = db.list_shops(conn, order="name")
+            rows = []
+            for shop in shops:
+                base = [
+                    shop["id"], shop["name"], shop["slug"], shop["address"],
+                    shop["district"], f"{shop['lat']:.6f}", f"{shop['lng']:.6f}",
+                    shop["google_maps_url"], shop["note"],
+                ]
+                reviews = db.reviews_for_shop(conn, shop["id"])
+                if not reviews:
+                    rows.append(base + [""] * (7 + len(cats)))
+                    continue
+                for review in reviews:
+                    scores = db.review_scores(conn, review["id"])
+                    price = (
+                        f"{review['price_eur']:.2f}".replace(".", ",")
+                        if review["price_eur"] is not None else ""
+                    )
+                    rows.append(base + [
+                        review["id"], review["author"], fmt_date(review["visited_on"]), price,
+                        *[scores.get(c["key"], "") for c in cats],
+                        fmt_score(review["score"]) if review["score"] is not None else "",
+                        review["body"],
+                        " | ".join(f"/uploads/{image['file']}" for image in review["images"]),
+                    ])
+        finally:
+            conn.close()
+
+        out = io.StringIO()
+        out.write("\ufeff")
+        writer = csv.writer(out, delimiter=";", lineterminator="\r\n")
+        writer.writerow([
+            "Laden-ID", "Laden", "Slug", "Adresse", "Bezirk", "Breitengrad",
+            "Längengrad", "Google-Maps-Link", "Notiz", "Bewertungs-ID", "Autor",
+            "Besucht am", "Preis (EUR)", *[c["label"] for c in cats], "Gesamt",
+            "Text", "Fotos",
+        ])
+        def safe(value):
+            if isinstance(value, str) and value[:1] in ("=", "+", "-", "@"):
+                return "'" + value
+            return value
+        writer.writerows([[safe(value) for value in row] for row in rows])
+        filename = f"spiessgesell-innen-{date.today().isoformat()}.csv"
+        return Response(
+            out.getvalue(),
+            media_type="text/csv; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "no-store",
+            },
         )
 
     @app.get("/ich", response_class=HTMLResponse)

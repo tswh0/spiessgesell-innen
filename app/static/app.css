@@ -31,7 +31,6 @@ img { max-width: 100%; }
 main { padding-top: calc(var(--nav) + env(safe-area-inset-top)); }
 main:focus { outline: none; }
 .brand-mark { display: inline-block; flex: none; width: 24px; height: 24px; }
-.footer__mark .brand-mark { width: 20px; height: 20px; }
 .sg-auth__card .brand-mark { width: 40px; height: 40px; }
 .nav__logo .brand-mark { width: 24px; height: 24px; }
 /* the phone shows the mark alone; the wordmark joins it from 640 */
@@ -162,13 +161,8 @@ main:focus { outline: none; }
 .sg-empty { display: grid; gap: var(--s-5); justify-items: start; padding: var(--s-7) 0; max-width: 40ch; }
 /* under a section heading the empty line follows it, not a second full block of air */
 .sg-section .sg-empty { padding-top: var(--s-2); padding-bottom: 0; }
-/* a shop with no reviews is short: the empty line ends the page 12px above the footer, and the
-   footer follows the content instead of being pinned to the viewport foot with ~120px of dead
-   air above it on a tall screen */
+/* a shop with no reviews is short: the empty line ends the section, not a second full block of air */
 .sg-section--reviews:has(.sg-empty) { padding-bottom: var(--s-3); }
-.sg-body--shop:has(.sg-empty) { min-height: 0; }
-.sg-body--shop:has(.sg-empty) main { flex: 0 0 auto; }
-.sg-body--shop:has(.sg-empty) .footer { margin-top: var(--s-6); }
 /* a short phone (320x640) still shows the whole first card under the map */
 @media (max-width: 899px) and (max-height: 700px) {
   .sg-home { grid-template-rows: minmax(180px, 34dvh) minmax(0, 1fr); }
@@ -440,8 +434,17 @@ main > .sg-page.sg-page, main > .sg-formpage.sg-formpage {
 /* inline and utility links carry no arrow: a right arrow means "onward" and belongs only to a real
    forward step (Bearbeiten); back links use .sg-back's left arrow instead */
 .link::after { content: none; }
+.link--arrow { display: inline-flex; align-items: center; gap: var(--s-2); text-decoration: none; }
+.link--arrow .link__text { text-decoration: underline; text-underline-offset: 3px; }
+.link--arrow:hover .link__text { text-decoration-thickness: 2px; }
 .link--arrow::after { content: "\2192"; display: inline-block; text-decoration: none; }
 @media (hover: hover) and (pointer: fine) { .link--arrow:hover::after { transform: translateX(3px); } }
+/* the date value is a native control: WebKit centres it by default, unlike every other field */
+.field input[type="date"] { text-align: left; }
+.field input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+@media (max-width: 899px) {
+  .field input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0; }
+}
 .field__label { display: block; }
 
 input[type="range"] {
@@ -554,7 +557,7 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: v
 .sg-mine li > div, .sg-mine li p, .sg-shot--pick span { overflow-wrap: anywhere; }
 .sg-mine li p { max-width: 72ch; }
 
-/* a short page still ends its footer on the viewport's foot */
+/* a short page still fills the viewport, so the paper does not end mid-screen */
 .sg-body--page, .sg-body--form, .sg-body--shop { display: flex; flex-direction: column; min-height: 100dvh; }
 .sg-body--page main, .sg-body--form main, .sg-body--shop main { flex: 1 0 auto; }
 
@@ -576,36 +579,9 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: v
 .sg-auth .btn-row { display: flex; }
 .sg-auth .btn { width: 100%; }
 .sg-auth .link { min-height: 44px; }
-
-/* ---------------------------------------------------------------- footer */
-/* compact on the phone: the system footer's band padding and nav rule are reset */
-.footer { border-top: 1px solid var(--line); margin-top: var(--s-8); padding: 0; }
-.footer .wrap {
-  display: grid;
-  gap: var(--s-2);
-  padding: var(--s-5) 0 calc(var(--s-5) + env(safe-area-inset-bottom));
-}
-.footer__mark { display: inline-flex; align-items: center; gap: var(--s-2); min-height: 44px; font-family: var(--font-display); font-size: 18px; }
-.footer__nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--s-5);
-  margin: 0;
-  padding: 0;
-  border: 0;
-  font-size: var(--t-small);
-}
-.footer__nav a { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; text-decoration: none; }
-.footer__nav a:hover { text-decoration: underline; text-underline-offset: 3px; }
-/* on the phone four footer links wrap into a ragged line; a two-column block keeps them on their lines */
-@media (max-width: 639px) {
-  .footer__nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2) var(--s-4); width: 100%; }
-  .footer__nav a { min-width: 0; }
-}
-.footer form { margin: 0; }
-.footer form .link { font-size: var(--t-small); }
-.footer .link { min-height: 44px; }
-.t-label .link { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; }
+.sg-auth__data { display: grid; gap: var(--s-2); margin-top: var(--s-2); padding-top: var(--s-5); border-top: 1px solid var(--line); }
+.sg-auth__data .btn { width: 100%; }
+.sg-auth__data p { margin: 0; }
 
 /* ---------------------------------------------------------------- tablet */
 @media (min-width: 640px) {
@@ -657,8 +633,6 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: v
   .sg-mine li { grid-template-columns: minmax(0, 1fr) 64px auto; gap: var(--s-4); }
   .sg-mine li > .link { grid-column: auto; justify-self: auto; }
   .sg-auth__card h1 { font-size: clamp(34px, 6vw, 48px); }
-  .footer .wrap { grid-template-columns: auto 1fr auto; align-items: center; gap: var(--s-4); padding: var(--s-6) 0 calc(var(--s-6) + env(safe-area-inset-bottom)); }
-  .footer__nav { justify-content: center; gap: 0 var(--s-4); }
 }
 
 /* ---------------------------------------------------------------- desktop home split */

@@ -216,6 +216,35 @@ def test_full_flow(place, browser: TestClient, app):
     assert "8,0" in ranking
 
 
+def test_export_csv(place, browser: TestClient, app):
+    login(browser)
+    slug = add_shop(browser, place)
+    token = csrf(browser, f"/laden/{slug}/bewerten")
+    response = browser.post(
+        f"/laden/{slug}/bewerten",
+        data=review_payload(token),
+        files={"photos": ("doener.jpg", jpeg(), "image/jpeg")},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    response = browser.get("/export.csv")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert "attachment" in response.headers["content-disposition"]
+    text = response.content.decode("utf-8-sig")
+    assert text.startswith("Laden-ID;Laden;Slug;")
+    lines = text.splitlines()
+    assert len(lines) == 2
+    assert "Test Döner" in text
+    assert "Tom" in text
+    assert "8,0" in text
+    assert "/uploads/" in text
+
+    anonymous = TestClient(app)
+    assert anonymous.get("/export.csv", follow_redirects=False).status_code == 303
+
+
 def test_scores_are_required(place, browser: TestClient):
     login(browser)
     slug = add_shop(browser, place, "Ohne Punkte")
