@@ -29,6 +29,10 @@ a { color: inherit; }
 img { max-width: 100%; }
 main { padding-top: var(--nav); }
 main:focus { outline: none; }
+.brand-mark { display: inline-block; flex: none; width: 24px; height: 24px; }
+.footer__mark .brand-mark { width: 20px; height: 20px; }
+.sg-auth__card .brand-mark { width: 40px; height: 40px; }
+.nav__logo .brand-mark { width: 24px; height: 24px; }
 
 .sg-body--map { overflow: hidden; }
 .sg-body--map main { padding-top: var(--nav); }

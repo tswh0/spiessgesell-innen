@@ -3,11 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>{% block title %}Spießgesellen{% endblock %}</title>
+<title>{% block title %}spießgesell:innen{% endblock %}</title>
 <meta name="description" content="Berliner Döner, bewertet von Freund:innen. Karte, Punkte, Fotos.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#e8e8e3">
-<link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
+<meta name="application-name" content="spießgesell:innen">
+<meta name="apple-mobile-web-app-title" content="spießgesell:innen">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="{{ url_for('static', path='brand/favicon.svg') }}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{ url_for('static', path='brand/icon-180.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600&family=Rethink+Sans:wght@400..600&display=swap" rel="stylesheet">
@@ -20,7 +27,7 @@
 <header class="nav">
   <div class="wrap nav__bar">
     <a class="skip-link" href="#top">Zum Inhalt</a>
-    <a class="nav__logo" href="/"><span class="mark mark--initial" aria-hidden="true">S</span>Spießgesellen</a>
+    <a class="nav__logo" href="/"><img class="brand-mark" src="{{ url_for('static', path='brand/mark.svg') }}" alt="" width="24" height="24">spießgesell:innen</a>
     <nav class="nav__links" aria-label="Hauptmenü">
       <div class="nav__item"><a class="nav__link" href="/" {% if page == 'home' %}aria-current="page"{% endif %}>Karte</a></div>
       <div class="nav__item"><a class="nav__link" href="/rangliste" {% if page == 'ranking' %}aria-current="page"{% endif %}>Rangliste</a></div>
@@ -42,7 +49,7 @@
 {% block footer %}
 <footer class="footer">
   <div class="wrap">
-    <span class="footer__mark"><span class="mark mark--initial" aria-hidden="true">S</span>Spießgesellen</span>
+    <span class="footer__mark"><img class="brand-mark" src="{{ url_for('static', path='brand/mark.svg') }}" alt="" width="24" height="24">spießgesell:innen</span>
     <nav class="footer__nav" aria-label="Fußzeile">
       <a href="/">Karte</a>
       <a href="/rangliste">Rangliste</a>
@@ -57,6 +64,7 @@
 </footer>
 {% endblock %}
 <script src="{{ url_for('static', path='vendor/system.js') }}" type="module"></script>
+<script src="{{ url_for('static', path='pwa.js') }}" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

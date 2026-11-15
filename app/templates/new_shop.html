@@ -1,34 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Laden hinzufügen · Spießgesellen{% endblock %}
+{% block title %}Laden hinzufügen · spießgesell:innen{% endblock %}
 {% block bodyclass %}sg-body--form{% endblock %}
 {% block main %}
 <section class="wrap sg-formpage">
   <p class="t-label muted"><a class="link" href="/">Karte</a></p>
   <h1>Laden hinzufügen</h1>
-  <p class="t-lead muted">Google-Maps-Link einfügen reicht — wir lesen die Koordinaten daraus. Sonst die Adresse eintragen.</p>
+  <p class="t-lead muted">Nur den Google-Maps-Link einfügen. Name, Straße und Bezirk lesen wir daraus.</p>
 
   <form class="form sg-newshop" method="post" action="/laeden/neu">
     <input type="hidden" name="csrf" value="{{ csrf }}">
-    <label class="field field--full">Name
-      <input name="name" maxlength="80" required value="{{ values.get('name', '') if values else '' }}">
-    </label>
     <label class="field field--full">Google-Maps-Link
-      <input name="link" inputmode="url" placeholder="https://maps.app.goo.gl/…" value="{{ values.get('link', '') if values else '' }}">
-    </label>
-    <label class="field field--full">Adresse <span class="muted">(falls kein Link)</span>
-      <input name="address" maxlength="160" placeholder="Karl-Marx-Straße 94, Berlin" value="{{ values.get('address', '') if values else '' }}">
-    </label>
-    <label class="field">Bezirk
-      <input name="district" maxlength="40" placeholder="Neukölln" value="{{ values.get('district', '') if values else '' }}">
-    </label>
-    <label class="field field--full">Notiz <span class="muted">(optional)</span>
-      <textarea name="note" rows="3" maxlength="500">{{ values.get('note', '') if values else '' }}</textarea>
+      <input name="link" inputmode="url" autocomplete="off" placeholder="https://maps.app.goo.gl/…" value="{{ link or '' }}" autofocus required>
     </label>
     {% if error %}<p class="sg-error">{{ error }}</p>{% endif %}
     <div class="btn-row">
-      <button class="btn btn--primary" type="submit">Eintragen</button>
+      <button class="btn btn--primary" type="submit">Weiter</button>
       <a class="link" href="/">Abbrechen</a>
     </div>
   </form>
+
+  <p class="t-small muted sg-hint">In Google Maps: Laden öffnen → Teilen → Link kopieren.</p>
 </section>
 {% endblock %}

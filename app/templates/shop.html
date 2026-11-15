@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ shop.name }} · Spießgesellen{% endblock %}
+{% block title %}{{ shop.name }} · spießgesell:innen{% endblock %}
 {% block bodyclass %}sg-body--shop{% endblock %}
 {% block main %}
 <article class="sg-shop">
@@ -25,7 +25,6 @@
   <div class="wrap sg-shop__actions">
     <a class="btn btn--primary" href="/laden/{{ shop.slug }}/bewerten">Bewerten</a>
     <a class="btn btn--secondary" href="{{ directions }}" target="_blank" rel="noopener">Route in Google Maps</a>
-    {% if shop.google_maps_url %}<a class="link" href="{{ shop.google_maps_url }}" target="_blank" rel="noopener">Auf Google Maps ansehen</a>{% endif %}
   </div>
 
   {% if shop.review_count %}

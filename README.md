@@ -1,20 +1,24 @@
-# Spießgesellen
+# spießgesell:innen
 
 Private Döner review club for Berlin. One map, one score per category, photos, a
-ranking. FastAPI + SQLite in one container; the UI is server-rendered.
+ranking. FastAPI + SQLite in one container; the UI is server-rendered and mobile-first,
+installable as a web app.
 
 ## How it works
 
 - **Access**: one shared password (`SHARED_PASSWORD`), no accounts. After login every
   visitor picks a name; reviews carry that name. Everything is behind the password.
-- **Shops**: add by pasting a Google Maps link — the server follows the redirect and
-  reads the coordinates from it; an address falls back to Nominatim. No API key.
+- **Shops**: paste the Google Maps share link — the name comes from the place in the
+  link, street and Bezirk from reverse-geocoding its coordinates (Nominatim, no API
+  key). A confirmation step lets you override any of them before saving.
 - **Reviews**: visit date, 1–10 in five categories, optional text and price, up to six
   photos. Images are re-encoded to WebP (1600 px + 480 px thumb), EXIF stripped.
 - **Map**: Leaflet + OpenStreetMap tiles; pins coloured by score, best in the accent.
 - **Ranking**: overall leaderboard and per-category leaders.
 - **Categories**: `seed/categories.yaml`, upserted on boot. Add a category without a
   migration; missing scores are simply left out of the averages.
+- **Web app**: manifest, maskable icons and a service worker (static assets cached,
+  offline page). Install from the browser's "Add to Home Screen".
 
 ## Local development
 
@@ -41,6 +45,7 @@ curl http://127.0.0.1:8095/healthz
 `Caddyfile.snippet` has the two lines for `doner.twh0.de`.
 
 Data lives in `./data` (SQLite + uploads), mounted at `/data`. Back it up with:
+
 ```sh
 sqlite3 data/spiessgesellen.sqlite3 ".backup 'backup-$(date +%F).sqlite3'"
 rsync -a data/uploads/ backup-uploads/
@@ -56,7 +61,7 @@ Demo data: `python scripts/seed.py` adds three real shops; `python scripts/reset
 - CSRF double-submit token on every POST, signed HttpOnly cookies, login rate limit,
   CSP, `noindex`.
 - Uploads are decoded by Pillow (magic bytes, 40 MP cap, 15 MB per file), re-encoded,
-  and stored under generated names. No original file is kept.
+  stored under generated names, and served only to signed-in visitors.
 - Reviews can be edited or deleted by whoever uses the same name; no stronger
   ownership check without accounts.
 
@@ -65,11 +70,13 @@ Demo data: `python scripts/seed.py` adds three real shops; `python scripts/reset
 ```
 app/main.py      routes, auth gate, uploads, aggregation calls
 app/db.py        schema, queries, seeding
-app/maps.py      Google Maps link parsing, Nominatim, allowlisted redirects
+app/maps.py      Maps link parsing, place lookup, Nominatim, allowlisted redirects
 app/images.py    Pillow pipeline (HEIC, EXIF strip, WebP)
 app/security.py  password check, signed cookies, CSRF, rate limit
 app/templates/   Jinja pages
-app/static/      app.css, map.js, form.js, vendored Leaflet + taste-skill system
+app/static/      app.css, map.js, form.js, pwa.js, sw.js, manifest
+app/static/brand SVG mark, favicon, PWA and apple icons
 seed/            categories.yaml
 scripts/         seed.py, reset.py
+deploy/          user units for the LXC test instance
 ```

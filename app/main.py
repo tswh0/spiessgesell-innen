@@ -37,7 +37,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     thumbs.mkdir(parents=True, exist_ok=True)
     db.init_db(settings)
 
-    app = FastAPI(title="Spießgesellen", docs_url=None, redoc_url=None)
+    app = FastAPI(title="spießgesell:innen", docs_url=None, redoc_url=None)
     app.state.settings = settings
     app.state.auth = Auth(settings.shared_password, settings.secret_key)
     app.state.limiter = LoginLimiter()
@@ -227,6 +227,21 @@ def register_routes(app: FastAPI) -> None:
     @app.get("/healthz")
     async def healthz():
         return JSONResponse({"ok": True})
+
+    @app.get("/manifest.webmanifest")
+    async def manifest():
+        return FileResponse(BASE / "static" / "manifest.webmanifest",
+                            media_type="application/manifest+json")
+
+    @app.get("/sw.js")
+    async def service_worker():
+        return FileResponse(BASE / "static" / "sw.js",
+                            media_type="application/javascript",
+                            headers={"Cache-Control": "no-cache"})
+
+    @app.get("/offline", response_class=HTMLResponse)
+    async def offline(request: Request):
+        return render(request, "offline.html")
 
     @app.get("/uploads/{path:path}", response_class=FileResponse)
     async def upload_file(request: Request, path: str):
@@ -419,30 +434,62 @@ def register_routes(app: FastAPI) -> None:
         return render(request, "new_shop.html", page="new")
 
     @app.post("/laeden/neu")
-    async def new_shop(request: Request):
+    async def new_shop_lookup(request: Request):
         require(request)
         form = await request.form()
+        link = str(form.get("link", "")).strip()
         if not csrf_ok(request.cookies.get("sg_csrf"), form.get("csrf")):
             return render(request, "new_shop.html", status=400,
-                          error="Sitzung abgelaufen. Nochmal.", values=form)
-        name = " ".join(str(form.get("name", "")).split())[:80]
+                          error="Sitzung abgelaufen. Nochmal.", link=link)
+        if not link:
+            return render(request, "new_shop.html", status=400,
+                          error="Bitte den Google-Maps-Link einfügen.", link=link)
+        info = await run_in_threadpool(maps.place_info, link)
+        if not info:
+            return render(
+                request, "new_shop.html", status=400,
+                error="Im Link stecken keine Koordinaten. Nimm den Teilen-Link aus Google Maps.",
+                link=link,
+            )
+        return render(
+            request, "new_shop_confirm.html",
+            info=info, link=link, page="new", error=None,
+        )
+
+    @app.post("/laeden/neu/anlegen")
+    async def new_shop_create(request: Request):
+        require(request)
+        form = await request.form()
         link = str(form.get("link", "")).strip()
+        name = " ".join(str(form.get("name", "")).split())[:80]
         address = str(form.get("address", "")).strip()[:160]
         district = str(form.get("district", "")).strip()[:40]
         note = str(form.get("note", "")).strip()[:500]
+        try:
+            lat = float(str(form.get("lat", "")))
+            lng = float(str(form.get("lng", "")))
+        except ValueError:
+            lat = lng = 0.0
+        info = maps.PlaceInfo(
+            name=name, address=address, district=district,
+            lat=lat, lng=lng, maps_url=link,
+        )
+        if not csrf_ok(request.cookies.get("sg_csrf"), form.get("csrf")):
+            return render(request, "new_shop_confirm.html", status=400,
+                          info=info, link=link, page="new",
+                          error="Sitzung abgelaufen. Nochmal.")
         if len(name) < 2:
-            return render(request, "new_shop.html", status=400,
-                          error="Wie heißt der Laden?", values=form)
-        coords = maps.expand_and_parse(link) if link else None
-        if not coords and address:
-            coords = maps.geocode(f"{address}, Berlin")
-        if not coords:
-            return render(
-                request, "new_shop.html", status=400,
-                error="Keine Koordinaten gefunden. Google-Maps-Link oder Adresse prüfen.",
-                values=form,
-            )
-        lat, lng = coords
+            return render(request, "new_shop_confirm.html", status=400,
+                          info=info, link=link, page="new",
+                          error="Wie heißt der Laden?")
+        if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+            return render(request, "new_shop_confirm.html", status=400,
+                          info=info, link=link, page="new",
+                          error="Koordinaten fehlen. Nochmal über den Link.")
+        if not maps.in_berlin(lat, lng):
+            return render(request, "new_shop_confirm.html", status=400,
+                          info=info, link=link, page="new",
+                          error="Der Laden liegt nicht in Berlin.")
         conn = _conn(request)
         try:
             shop_id = db.create_shop(

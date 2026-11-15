@@ -1,8 +1,8 @@
 services:
   app:
     build: .
-    image: spiessgesellen:local
-    container_name: spiessgesellen
+    image: spiessgesell-innen:local
+    container_name: spiessgesell-innen
     restart: unless-stopped
     env_file: .env
     environment:

@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from app import maps
 from app.config import Settings
 from app.main import create_app
 
@@ -41,6 +42,20 @@ def browser(app):
     return TestClient(app)
 
 
+@pytest.fixture()
+def place(monkeypatch):
+    info = maps.PlaceInfo(
+        name="Test Döner",
+        address="Teststraße 1, 10999 Berlin",
+        district="Kreuzberg",
+        lat=52.5035,
+        lng=13.4209,
+        maps_url="https://maps.app.goo.gl/test",
+    )
+    monkeypatch.setattr("app.main.maps.place_info", lambda url: info)
+    return info
+
+
 def csrf(client: TestClient, path: str = "/login") -> str:
     page = client.get(path).text
     match = re.search(r'name="csrf" value="([^"]+)"', page)
@@ -71,16 +86,26 @@ def jpeg(width: int = 800, height: int = 600) -> bytes:
     return buffer.getvalue()
 
 
-def add_shop(client: TestClient, name: str = "Test Döner") -> str:
+def add_shop(client: TestClient, place: maps.PlaceInfo, name: str | None = None) -> str:
+    token = csrf(client, "/laeden/neu")
+    lookup = client.post(
+        "/laeden/neu",
+        data={"csrf": token, "link": place.maps_url},
+    )
+    assert lookup.status_code == 200
+    assert place.name in lookup.text
+
     token = csrf(client, "/laeden/neu")
     response = client.post(
-        "/laeden/neu",
+        "/laeden/neu/anlegen",
         data={
             "csrf": token,
-            "name": name,
-            "link": "52.5100,13.4200",
-            "address": "Teststraße 1, Berlin",
-            "district": "Mitte",
+            "link": place.maps_url,
+            "lat": str(place.lat),
+            "lng": str(place.lng),
+            "name": name or place.name,
+            "address": place.address,
+            "district": place.district,
             "note": "",
         },
         follow_redirects=False,
@@ -118,9 +143,54 @@ def test_wrong_password(browser: TestClient):
     assert "Falsches Passwort" in response.text
 
 
-def test_full_flow(browser: TestClient, app):
+def test_shop_lookup_prefills(place, browser: TestClient):
     login(browser)
-    slug = add_shop(browser)
+    token = csrf(browser, "/laeden/neu")
+    response = browser.post("/laeden/neu", data={"csrf": token, "link": place.maps_url})
+    assert response.status_code == 200
+    assert place.name in response.text
+    assert place.address in response.text
+    assert place.district in response.text
+    assert 'name="lat" value="52.5035"' in response.text
+
+
+def test_shop_lookup_failure(browser: TestClient, monkeypatch):
+    login(browser)
+    monkeypatch.setattr("app.main.maps.place_info", lambda url: None)
+    token = csrf(browser, "/laeden/neu")
+    response = browser.post(
+        "/laeden/neu", data={"csrf": token, "link": "https://maps.app.goo.gl/nope"}
+    )
+    assert response.status_code == 400
+    assert "keine Koordinaten" in response.text
+
+
+def test_shop_name_override(place, browser: TestClient):
+    login(browser)
+    slug = add_shop(browser, place, name="Mein Name")
+    assert slug == "mein-name"
+    assert "Mein Name" in browser.get(f"/laden/{slug}").text
+
+
+def test_shop_outside_berlin(place, browser: TestClient):
+    login(browser)
+    token = csrf(browser, "/laeden/neu")
+    browser.post("/laeden/neu", data={"csrf": token, "link": place.maps_url})
+    token = csrf(browser, "/laeden/neu")
+    response = browser.post(
+        "/laeden/neu/anlegen",
+        data={
+            "csrf": token, "link": place.maps_url, "lat": "48.137", "lng": "11.575",
+            "name": "München Döner", "address": "Marienplatz", "district": "",
+        },
+    )
+    assert response.status_code == 400
+    assert "nicht in Berlin" in response.text
+
+
+def test_full_flow(place, browser: TestClient, app):
+    login(browser)
+    slug = add_shop(browser, place)
     assert slug == "test-doener"
 
     token = csrf(browser, f"/laden/{slug}/bewerten")
@@ -146,9 +216,9 @@ def test_full_flow(browser: TestClient, app):
     assert "8,0" in ranking
 
 
-def test_scores_are_required(browser: TestClient):
+def test_scores_are_required(place, browser: TestClient):
     login(browser)
-    slug = add_shop(browser, "Ohne Punkte")
+    slug = add_shop(browser, place, "Ohne Punkte")
     token = csrf(browser, f"/laden/{slug}/bewerten")
     response = browser.post(
         f"/laden/{slug}/bewerten",
@@ -158,9 +228,9 @@ def test_scores_are_required(browser: TestClient):
     assert "Noch Punkte" in response.text
 
 
-def test_csrf_required(browser: TestClient):
+def test_csrf_required(place, browser: TestClient):
     login(browser)
-    slug = add_shop(browser, "CSRF")
+    slug = add_shop(browser, place, "CSRF")
     response = browser.post(
         f"/laden/{slug}/bewerten",
         data={"csrf": "wrong", "visited_on": "2026-11-01", "score_bread": "8",
@@ -170,9 +240,9 @@ def test_csrf_required(browser: TestClient):
     assert "Sitzung abgelaufen" in response.text
 
 
-def test_edit_and_delete(browser: TestClient):
+def test_edit_and_delete(place, browser: TestClient):
     login(browser)
-    slug = add_shop(browser, "Bearbeiten")
+    slug = add_shop(browser, place, "Bearbeiten")
     token = csrf(browser, f"/laden/{slug}/bewerten")
     browser.post(f"/laden/{slug}/bewerten", data=review_payload(token), follow_redirects=False)
 
@@ -195,9 +265,9 @@ def test_edit_and_delete(browser: TestClient):
     assert "Noch keine Bewertung" in browser.get(f"/laden/{slug}").text
 
 
-def test_other_author_cannot_edit(browser: TestClient, app):
+def test_other_author_cannot_edit(place, browser: TestClient):
     login(browser)
-    slug = add_shop(browser, "Fremd")
+    slug = add_shop(browser, place, "Fremd")
     token = csrf(browser, f"/laden/{slug}/bewerten")
     browser.post(f"/laden/{slug}/bewerten", data=review_payload(token), follow_redirects=False)
 
@@ -207,9 +277,9 @@ def test_other_author_cannot_edit(browser: TestClient, app):
     assert response.status_code == 404
 
 
-def test_rejects_bad_image(browser: TestClient):
+def test_rejects_bad_image(place, browser: TestClient):
     login(browser)
-    slug = add_shop(browser, "Bild")
+    slug = add_shop(browser, place, "Bild")
     token = csrf(browser, f"/laden/{slug}/bewerten")
     response = browser.post(
         f"/laden/{slug}/bewerten",
@@ -220,9 +290,9 @@ def test_rejects_bad_image(browser: TestClient):
     assert "kein lesbares Bild" in response.text
 
 
-def test_uploads_require_login(browser: TestClient, app):
+def test_uploads_require_login(place, browser: TestClient, app):
     login(browser)
-    slug = add_shop(browser, "Privat")
+    slug = add_shop(browser, place, "Privat")
     token = csrf(browser, f"/laden/{slug}/bewerten")
     browser.post(
         f"/laden/{slug}/bewerten",
@@ -237,6 +307,15 @@ def test_uploads_require_login(browser: TestClient, app):
     response = anonymous.get(f"/uploads/{file}", follow_redirects=False)
     assert response.status_code == 303
     assert response.headers["location"].startswith("/login")
+
+
+def test_pwa_endpoints(browser: TestClient):
+    manifest = browser.get("/manifest.webmanifest")
+    assert manifest.status_code == 200
+    assert manifest.json()["name"] == "spießgesell:innen"
+    assert browser.get("/sw.js").status_code == 200
+    assert browser.get("/offline").status_code == 200
+    assert browser.get("/static/brand/mark.svg").status_code == 200
 
 
 def test_unknown_shop(browser: TestClient):

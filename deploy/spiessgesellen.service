@@ -1,5 +1,5 @@
 [Unit]
-Description=Spiessgesellen (doner review club)
+Description=spießgesell:innen (doner review club)
 After=network-online.target
 
 [Service]

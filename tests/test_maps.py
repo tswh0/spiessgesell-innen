@@ -51,3 +51,50 @@ def test_short_link_expansion(monkeypatch):
 def test_berlin_bounds():
     assert in_berlin(52.5, 13.4)
     assert not in_berlin(48.1, 11.5)
+
+
+def test_name_from_place_url():
+    import app.maps as maps
+
+    assert maps.name_from_url(
+        "https://www.google.com/maps/place/Hasir/@52.5,13.4,17z"
+    ) == "Hasir"
+    assert maps.name_from_url(
+        "https://www.google.com/maps/place/R%C3%BCyam%20Gem%C3%BCse%20Kebab/@52.48,13.35"
+    ) == "Rüyam Gemüse Kebab"
+    assert maps.name_from_url("https://maps.google.com/?q=Hasir+Berlin") == "Hasir Berlin"
+
+
+def test_place_info(monkeypatch):
+    import app.maps as maps
+
+    monkeypatch.setattr(maps, "resolve", lambda url: (url, (52.5, 13.42)))
+    monkeypatch.setattr(
+        maps,
+        "reverse_geocode",
+        lambda lat, lng: {
+            "address": {
+                "road": "Adalbertstraße",
+                "house_number": "28",
+                "postcode": "10999",
+                "city": "Berlin",
+                "suburb": "Kreuzberg",
+            }
+        },
+    )
+    info = maps.place_info("https://www.google.com/maps/place/Hasir/@52.5,13.42,17z")
+    assert info == maps.PlaceInfo(
+        name="Hasir",
+        address="Adalbertstraße 28, 10999 Berlin",
+        district="Kreuzberg",
+        lat=52.5,
+        lng=13.42,
+        maps_url="https://www.google.com/maps/place/Hasir/@52.5,13.42,17z",
+    )
+
+
+def test_place_info_without_coordinates(monkeypatch):
+    import app.maps as maps
+
+    monkeypatch.setattr(maps, "resolve", lambda url: (url, None))
+    assert maps.place_info("https://maps.app.goo.gl/nope") is None
