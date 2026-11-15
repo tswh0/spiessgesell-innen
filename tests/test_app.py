@@ -205,7 +205,7 @@ def test_full_flow(place, browser: TestClient, app):
     shop = browser.get(f"/laden/{slug}").text
     assert "Test Döner" in shop
     assert "8,0" in shop
-    assert "/uploads/thumbs/" in shop
+    assert "/uploads/" in shop
 
     uploads = app.state.settings.uploads_dir
     assert len(list(uploads.glob("*.webp"))) == 1

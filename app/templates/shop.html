@@ -67,13 +67,16 @@
         {% endif %}
         {% if review.body %}<p class="sg-review__body">{{ review.body }}</p>{% endif %}
         {% if review.images %}
+        {% set shots = (review.images | rejectattr('id', 'equalto', hero.id) | list) if hero else review.images %}
+        {% if shots %}
         <div class="sg-shots">
-          {% for image in review.images %}
+          {% for image in shots %}
           <a class="sg-shot" href="/uploads/{{ image.file }}" target="_blank" rel="noopener">
             <img src="/uploads/thumbs/{{ image.thumb }}" alt="Foto von {{ shop.name }} von {{ review.author }}" loading="lazy" width="{{ image.width }}" height="{{ image.height }}">
           </a>
           {% endfor %}
         </div>
+        {% endif %}
         {% endif %}
         {% if review.author == current_name %}
         <p class="sg-review__own">
