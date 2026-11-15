@@ -231,6 +231,18 @@ main > .sg-page.sg-page, main > .sg-formpage.sg-formpage {
 .sg-hint { margin: 0 0 var(--s-2); }
 .sg-reviewform .sg-hint { margin-top: calc(-1 * var(--s-2)); }
 .sg-note { margin-top: var(--s-5); max-width: 46ch; }
+.sg-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+.sg-back__text { text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 4px; }
+.sg-back:hover .sg-back__text { text-decoration-color: currentColor; }
+.sg-back__arrow { text-decoration: none; }
 .sg-filefield { display: grid; gap: var(--s-2); }
 .sg-file {
   display: flex;

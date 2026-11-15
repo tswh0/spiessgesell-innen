@@ -11,7 +11,7 @@
 
   <header class="sg-shop__head wrap">
     <div>
-      <p class="t-label muted"><a class="link" href="/">Karte</a>{% if shop.district %} · {{ shop.district }}{% endif %}</p>
+      <p class="t-label muted"><a class="sg-back" href="/"><span class="sg-back__arrow" aria-hidden="true">←</span><span class="sg-back__text">Karte</span></a>{% if shop.district %} · {{ shop.district }}{% endif %}</p>
       <h1>{{ shop.name }}</h1>
       {% if shop.address %}<p class="t-lead">{{ shop.address }}</p>{% endif %}
       {% if shop.note %}<p class="muted">{{ shop.note }}</p>{% endif %}
@@ -45,7 +45,6 @@
   <section class="wrap sg-section">
     <div class="sg-section__head">
       <h2>Bewertungen</h2>
-      <a class="link" href="/laden/{{ shop.slug }}/bewerten">Eigene hinzufügen</a>
     </div>
     {% if reviews %}
       {% for review in reviews %}
@@ -80,7 +79,6 @@
     {% else %}
     <div class="sg-empty">
       <p class="t-body">Noch keine Bewertung. Macht den Anfang.</p>
-      <a class="btn btn--primary" href="/laden/{{ shop.slug }}/bewerten">Erste Bewertung schreiben</a>
     </div>
     {% endif %}
   </section>
