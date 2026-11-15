@@ -4,7 +4,8 @@
   if (!el || !dataEl) return;
 
   const shops = JSON.parse(dataEl.textContent || "[]");
-  const map = L.map(el, { scrollWheelZoom: true }).setView([52.5, 13.42], 12);
+  const map = L.map(el, { scrollWheelZoom: true, zoomControl: false }).setView([52.5, 13.42], 12);
+  L.control.zoom({ zoomInTitle: "Vergrößern", zoomOutTitle: "Verkleinern" }).addTo(map);
 
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
@@ -34,13 +35,34 @@
       icon,
       title: shop.name,
       alt: shop.name,
+      keyboard: true,
     }).addTo(map);
+    const markerEl = marker.getElement();
+    const pin = markerEl?.querySelector(".sg-pin");
+    if (markerEl) {
+      const value = shop.score == null
+        ? "Noch keine Bewertung"
+        : `${score(shop.score)} von 10, ${shop.count} Bewertung${shop.count === 1 ? "" : "en"}`;
+      markerEl.setAttribute("aria-label", `${shop.name}, ${value}`);
+    }
     marker.bindPopup(
-      `<strong>${esc(shop.name)}</strong><br>` +
+      `<strong>${esc(shop.name)}</strong>` +
         `${score(shop.score)} · ${shop.count}&nbsp;Bewertung${shop.count === 1 ? "" : "en"}<br>` +
         `<a href="/laden/${encodeURIComponent(shop.slug)}">Ansehen</a>`
     );
-    marker.on("popupopen", () => activate(shop.slug));
+    marker.on("popupopen", (event) => {
+      const close = event.popup.getElement()?.querySelector(".leaflet-popup-close-button");
+      if (close) {
+        close.setAttribute("aria-label", "Schließen");
+        close.setAttribute("title", "Schließen");
+      }
+      pin?.classList.add("is-active");
+      activate(shop.slug);
+    });
+    marker.on("popupclose", () => {
+      pin?.classList.remove("is-active");
+      document.querySelectorAll(".sg-card.is-active").forEach((card) => card.classList.remove("is-active"));
+    });
     markers.set(shop.slug, marker);
     points.push([shop.lat, shop.lng]);
   });

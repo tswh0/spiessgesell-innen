@@ -8,12 +8,15 @@
   const main = document.querySelector("main");
   const footer = document.querySelector("footer.footer");
   const links = nav.querySelector(".nav__links");
+  const toggle = nav.querySelector(".nav__toggle");
   let wasOpen = false;
 
   const sync = () => {
     const open = nav.classList.contains("is-open");
     if (main) main.inert = open;
     if (footer) footer.inert = open;
+    // the X is not the hamburger: its name has to say what the next press does
+    if (toggle) toggle.setAttribute("aria-label", open ? "Menü schließen" : "Menü");
     if (open && !wasOpen && links) {
       // after system.js has made the sheet visible
       requestAnimationFrame(() => links.focus({ preventScroll: true }));
@@ -23,4 +26,17 @@
 
   new MutationObserver(sync).observe(nav, { attributes: true, attributeFilter: ["class"] });
   sync();
+})();
+
+/* the edit page's delete step: the summary opens the confirmation; "Behalten" closes it again and
+   returns focus to the summary, so the keyboard stays where the choice was made */
+(() => {
+  document.addEventListener("click", (event) => {
+    const cancel = event.target.closest("[data-delete-cancel]");
+    if (!cancel) return;
+    const details = cancel.closest("details");
+    if (!details) return;
+    details.open = false;
+    details.querySelector("summary")?.focus();
+  });
 })();

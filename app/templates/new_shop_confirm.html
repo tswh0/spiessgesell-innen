@@ -5,24 +5,27 @@
 <section class="wrap sg-formpage">
   <p class="t-label muted"><a class="sg-back" href="/laeden/neu"><span class="sg-back__arrow" aria-hidden="true">←</span><span class="sg-back__text">Laden hinzufügen</span></a></p>
   <h1>Stimmt das?</h1>
-  <p class="t-lead muted">Aus dem Link gelesen. Der Name lässt sich überschreiben; Straße und Bezirk auch.</p>
+  <p class="t-lead muted">Aus dem Link gelesen. Der Name lässt sich überschreiben. Straße und Bezirk auch.</p>
 
+  {% set name_error = error and 'heißt' in error %}
   <form class="form sg-newshop" method="post" action="/laeden/neu/anlegen">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <input type="hidden" name="link" value="{{ link }}">
     <input type="hidden" name="lat" value="{{ info.lat }}">
     <input type="hidden" name="lng" value="{{ info.lng }}">
-    {% if error %}<p class="sg-error" role="alert">{{ error }}</p>{% endif %}
+    {% if error %}<p class="sg-error" id="confirm-error" role="alert">{{ error }}</p>{% endif %}
 
     <label class="field field--full">Name
-      <input name="name" maxlength="80" required value="{{ info.name }}">
+      <input name="name" maxlength="80" required value="{{ info.name }}"{% if name_error %} aria-invalid="true" aria-describedby="confirm-error"{% endif %}>
     </label>
-    <label class="field field--full">Adresse
-      <input name="address" maxlength="160" value="{{ info.address }}">
-    </label>
-    <label class="field field--full">Bezirk
-      <input name="district" maxlength="40" value="{{ info.district }}">
-    </label>
+    <div class="sg-newshop__pair">
+      <label class="field">Adresse
+        <input name="address" maxlength="160" value="{{ info.address }}">
+      </label>
+      <label class="field">Bezirk
+        <input name="district" maxlength="40" value="{{ info.district }}">
+      </label>
+    </div>
     <label class="field field--full"><span class="field__label">Notiz <span class="muted">(optional)</span></span>
       <textarea name="note" rows="3" maxlength="500"></textarea>
     </label>

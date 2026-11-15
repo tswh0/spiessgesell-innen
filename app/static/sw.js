@@ -1,6 +1,7 @@
-const CACHE = "ssg-v3";
+const CACHE = "ssg-v4";
 const ASSETS = [
   "/offline",
+  "/manifest.webmanifest",
   "/static/app.css",
   "/static/vendor/system.css",
   "/static/vendor/leaflet.css",
@@ -11,7 +12,12 @@ const ASSETS = [
   "/static/pwa.js",
   "/static/ui.js",
   "/static/brand/mark.svg",
+  "/static/brand/favicon.svg",
+  "/static/brand/icon-32.png",
+  "/static/brand/icon-180.png",
   "/static/brand/icon-192.png",
+  "/static/brand/icon-512.png",
+  "/static/brand/icon-maskable-512.png",
 ];
 
 self.addEventListener("install", (event) => {

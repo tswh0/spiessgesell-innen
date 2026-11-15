@@ -9,15 +9,17 @@
 
   <form class="sg-reviewform" method="post" action="{{ '/bewertungen/' ~ review.id if review else '/laden/' ~ shop.slug ~ '/bewerten' }}" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="{{ csrf }}">
+    {% set score_error = error and 'Punkte' in error %}
+    {% if error %}<p class="sg-error" id="review-error" role="alert">{{ error }}</p>{% endif %}
 
-    <fieldset class="sg-scores">
+    <fieldset class="sg-scores"{% if score_error %} aria-describedby="review-error"{% endif %}>
       <legend class="t-label">Punkte, 1 bis 10</legend>
       <p class="sg-hint t-small muted">1 = schlimm, 10 = perfekt</p>
       {% for c in categories %}
       {% set value = scores.get(c.key, 7) %}
       <div class="sg-score-field">
         <label for="score_{{ c.key }}">{{ c.label }}{% if c.hint %}<span class="t-small muted">{{ c.hint }}</span>{% endif %}</label>
-        <input type="range" id="score_{{ c.key }}" name="score_{{ c.key }}" min="1" max="10" step="1" value="{{ value }}" data-score>
+        <input type="range" id="score_{{ c.key }}" name="score_{{ c.key }}" min="1" max="10" step="1" value="{{ value }}" data-score{% if score_error %} aria-invalid="true" aria-describedby="review-error"{% endif %}>
         <output for="score_{{ c.key }}" data-output>{{ value }}</output>
       </div>
       {% endfor %}
@@ -28,7 +30,7 @@
       <label class="field">Besucht am
         <input type="date" name="visited_on" value="{{ review.visited_on if review else today }}" max="{{ today }}" required>
       </label>
-      <label class="field"><span class="field__label">Preis € <span class="muted">(optional)</span></span>
+      <label class="field"><span class="field__label">Preis in € <span class="muted">(optional)</span></span>
         <input type="text" name="price" inputmode="decimal" placeholder="z. B. 7,50" value="{% if review and review.price_eur %}{{ ('%.2f'|format(review.price_eur)).replace('.', ',') }}{% endif %}">
       </label>
     </div>
@@ -42,10 +44,10 @@
       <p class="t-label">Vorhandene Fotos</p>
       <div class="sg-shots">
         {% for image in photos %}
-        <label class="sg-shot sg-shot--pick">
-          <img src="/uploads/thumbs/{{ image.thumb }}" alt="" width="{{ image.width }}" height="{{ image.height }}">
-          <span><input type="checkbox" name="remove_image" value="{{ image.id }}"> Löschen</span>
-        </label>
+        <div class="sg-shot sg-shot--pick">
+          <img src="/uploads/thumbs/{{ image.thumb }}" alt="Vorhandenes Foto {{ loop.index }}" width="{{ image.width }}" height="{{ image.height }}">
+          <label class="sg-shot__remove"><input type="checkbox" name="remove_image" value="{{ image.id }}" aria-label="Foto {{ loop.index }} löschen"><span class="sg-shot__check" aria-hidden="true"></span>Foto löschen</label>
+        </div>
         {% endfor %}
       </div>
     </div>
@@ -54,14 +56,12 @@
     <div class="sg-filefield">
       <p class="t-label">Fotos <span class="muted">(bis zu 6, JPG/PNG/HEIC)</span></p>
       <label class="sg-file">
-        <input type="file" name="photos" accept="image/*" multiple data-photos>
+        <input type="file" name="photos" accept="image/*" multiple data-photos aria-label="Fotos auswählen">
         <span class="btn btn--secondary btn--sm">Fotos wählen</span>
         <span class="t-small muted" data-filecount>Keine Fotos</span>
       </label>
     </div>
     <div class="sg-previews" data-previews aria-live="polite"></div>
-
-    {% if error %}<p class="sg-error" role="alert">{{ error }}</p>{% endif %}
 
     <div class="btn-row">
       <button class="btn btn--primary" type="submit">{{ "Änderungen speichern" if review else "Bewertung speichern" }}</button>
@@ -70,10 +70,17 @@
   </form>
 
   {% if review %}
-  <form class="sg-delete" method="post" action="/bewertungen/{{ review.id }}/loeschen" onsubmit="return confirm('Bewertung wirklich löschen?')">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    <button class="link" type="submit">Bewertung löschen</button>
-  </form>
+  <details class="sg-delete">
+    <summary>Bewertung löschen</summary>
+    <div class="sg-delete__confirm">
+      <p>Endgültig löschen? Text, Punkte und Fotos verschwinden.</p>
+      <form class="sg-delete__actions" method="post" action="/bewertungen/{{ review.id }}/loeschen">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="sg-delete__confirm-btn" type="submit">Endgültig löschen</button>
+        <button class="link" type="button" data-delete-cancel>Behalten</button>
+      </form>
+    </div>
+  </details>
   {% endif %}
 </section>
 {% endblock %}

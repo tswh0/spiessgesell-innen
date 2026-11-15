@@ -25,6 +25,7 @@ h1 { font-size: var(--t-h1); line-height: 1.02; text-wrap: balance; }
 h2 { font-size: var(--t-h2); line-height: 1.1; text-wrap: balance; }
 h3 { font-size: var(--t-h3); line-height: 1.2; }
 p { margin: 0; }
+::placeholder { color: var(--p-muted); opacity: 1; }
 a { color: inherit; }
 img { max-width: 100%; }
 main { padding-top: calc(var(--nav) + env(safe-area-inset-top)); }
@@ -45,8 +46,17 @@ main:focus { outline: none; }
 }
 .nav__logo { min-height: 44px; min-width: 44px; }
 .nav__link { height: 44px; }
+.nav__toggle { transition: background-color 160ms var(--ease), border-color 160ms var(--ease); }
+.nav__toggle:hover { background: var(--p-surface); border-color: var(--p-ink); }
+.nav__toggle:active { background: var(--line); }
 .nav.is-open .nav__links { top: calc(var(--nav) + env(safe-area-inset-top)); }
 .nav.is-open .nav__links:focus { outline: none; }
+
+/* at 320 the focused skip link otherwise covers the bar's primary button: a smaller label at
+   the far left still ends before the button's edge, so the whole nav stays readable */
+@media (max-width: 380px) {
+  .skip-link:focus { left: var(--s-2); padding: 0 var(--s-3); font-size: var(--t-small); }
+}
 
 /* the name in the bar is a link to /wer: the value alone on a desktop, the action named in the sheet */
 .nav__name-value { display: inline-block; max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
@@ -95,9 +105,9 @@ main:focus { outline: none; }
 }
 .sg-side__head h1 { font-size: 30px; }
 .sg-side__head p { margin-top: var(--s-2); }
-.sg-filters { display: flex; gap: var(--s-2); margin-top: var(--s-5); }
+.sg-filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-2); margin-top: var(--s-5); }
 .sg-filters select {
-  flex: 1;
+  width: 100%;
   min-width: 0;
   height: 44px;
   padding: 0 var(--s-3);
@@ -106,12 +116,19 @@ main:focus { outline: none; }
   background: var(--p-bg);
   color: var(--ink);
   font: 500 16px/1 var(--font-text);
+  transition: border-color 160ms var(--ease);
 }
-/* a long district ("Charlottenburg-Wilmersdorf" is 210px at 16px) is clipped in a half-width select
-   on a phone, so the two filters take one line each under 540 */
-@media (max-width: 539px) {
-  .sg-filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-2); }
-  .sg-filters select { width: 100%; }
+.sg-filters select:hover { border-color: var(--p-ink); }
+/* the action and the ink are the same colour, so system.css's primary hover computes the same
+   black: step it warm towards the brass instead and keep the press from system.css */
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover { background: color-mix(in oklab, var(--p-action) 86%, var(--p-accent)); }
+  .sg-score-field:hover { background: color-mix(in oklab, var(--p-surface) 55%, transparent); }
+}
+/* "Charlottenburg-Wilmersdorf" is 210px at 16px: the side panel is 430 wide on a desktop too,
+   so the two filters take one line each there; the full-width tablet column has room for a pair */
+@media (min-width: 640px) and (max-width: 899px) {
+  .sg-filters { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
 }
 
 .sg-list { list-style: none; margin: var(--s-5) 0 0; padding: 0; }
@@ -146,7 +163,10 @@ main:focus { outline: none; }
 .sg-card__new { font-family: var(--font-text); font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: .02em; }
 .sg-empty { display: grid; gap: var(--s-5); justify-items: start; padding: var(--s-7) 0; max-width: 40ch; }
 /* under a section heading the empty line follows it, not a second full block of air */
-.sg-section .sg-empty { padding-top: var(--s-2); }
+.sg-section .sg-empty { padding-top: var(--s-2); padding-bottom: 0; }
+/* a shop with no reviews is short: the empty line ends the page 12px above the footer's own 64px
+   margin, not 112px of white under a sentence */
+.sg-section--reviews:has(.sg-empty) { padding-bottom: var(--s-3); }
 /* a short phone (320x640) still shows the whole first card under the map */
 @media (max-width: 899px) and (max-height: 700px) {
   .sg-home { grid-template-rows: minmax(180px, 34dvh) minmax(0, 1fr); }
@@ -157,14 +177,45 @@ main:focus { outline: none; }
 .leaflet-container { background: var(--p-surface); font-family: var(--font-text); }
 .leaflet-tile-pane { filter: saturate(.55) contrast(.96); }
 .leaflet-control-attribution {
-  background: color-mix(in oklab, var(--p-bg) 88%, transparent) !important;
-  color: var(--p-muted) !important;
+  background: var(--p-bg) !important;
+  color: var(--p-ink) !important;
   font-size: 11px !important;
 }
 .leaflet-control-attribution a { color: var(--p-ink) !important; }
 /* a thumb or a mouse: the zoom controls keep a 44px target */
 #map .leaflet-bar a { color: var(--p-ink); background: var(--p-bg); border-color: var(--line-strong); width: 44px; height: 44px; line-height: 44px; font-size: 22px; }
-.leaflet-bar { border-radius: var(--r-sm); }
+#map .leaflet-bar a:hover { background: var(--p-surface); }
+.leaflet-bar { border-radius: var(--r-sm); box-shadow: none; border: 1px solid var(--line-strong); }
+/* the popup is a piece of the app, not Leaflet's default: flat paper, an ink name and a
+   44px close button and link so both are reachable on a phone */
+.leaflet-popup-content-wrapper {
+  background: var(--p-bg);
+  color: var(--p-ink);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  box-shadow: none;
+  padding: 0;
+}
+.leaflet-popup-content {
+  margin: 16px 52px 14px 16px;
+  font: 400 var(--t-small)/1.45 var(--font-text);
+  text-align: left;
+  color: var(--p-muted);
+}
+.leaflet-popup-content strong { display: block; margin-bottom: 2px; color: var(--p-ink); font: 400 22px/1.15 var(--font-display); letter-spacing: var(--display-tracking); }
+.leaflet-popup-content a { display: inline-flex; align-items: center; min-height: 44px; color: var(--p-ink); text-decoration: underline; text-underline-offset: 3px; }
+.leaflet-popup-tip { background: var(--p-bg); box-shadow: none; }
+/* the bubble is below Leaflet's control layer (its own map pane is a stacking context), so while
+   a popup is open the zoom bar steps aside instead of covering the popup's first word on a 320
+   map; closing the popup brings it back */
+#map:has(.leaflet-popup) .leaflet-control-zoom { visibility: hidden; }
+.leaflet-container a.leaflet-popup-close-button {
+  top: 0; right: 0; width: 44px; height: 44px;
+  font: 400 24px/44px var(--font-text);
+  color: var(--p-ink);
+}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus { color: var(--p-ink); background: var(--p-surface); }
 
 .sg-pin {
   display: grid;
@@ -234,7 +285,7 @@ main:focus { outline: none; }
 
 .sg-review { max-width: 780px; padding: var(--s-5) 0; border-top: 1px solid var(--line); }
 .sg-review:first-of-type { border-top: 0; }
-.sg-review header { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); max-width: none; }
+.sg-review header { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); max-width: 64ch; }
 .sg-review header > div { min-width: 0; }
 .sg-review__score { flex: none; font-family: var(--font-display); font-size: 24px; font-variant-numeric: tabular-nums; }
 .sg-review__scores { margin-top: var(--s-2); }
@@ -242,6 +293,9 @@ main:focus { outline: none; }
 .sg-review__own { margin-top: var(--s-3); }
 .sg-review__own .link { min-height: 44px; }
 .sg-shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); margin-top: var(--s-4); }
+/* a pair stays a pair at the 220px a lone photo gets; three or more go three-up on a tablet and
+   a desktop instead of auto-fill leaving empty tracks after them */
+.sg-shots:has(> .sg-shot:nth-child(2)):not(:has(> .sg-shot:nth-child(3))) { grid-template-columns: repeat(2, minmax(0, 220px)); }
 .sg-shot { display: block; overflow: hidden; background: var(--p-surface); }
 .sg-shot img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; transition: transform 500ms var(--ease); }
 .sg-shot:hover img { transform: scale(1.03); }
@@ -257,7 +311,7 @@ main > .sg-page.sg-page, main > .sg-formpage.sg-formpage {
 .sg-page { max-width: none; }
 .sg-formpage { max-width: 760px; }
 .sg-formpage h1 { margin-top: var(--s-2); }
-.sg-formpage > .t-lead { margin-top: var(--s-2); }
+.sg-formpage > .t-lead { margin-top: var(--s-3); }
 .sg-reviewform, .sg-newshop { display: grid; gap: var(--s-5); margin-top: var(--s-6); }
 .sg-scores { display: grid; gap: var(--s-2); margin: 0; padding: 0; border: 0; }
 .sg-scores legend { padding: 0; margin-bottom: var(--s-2); color: var(--muted); }
@@ -279,6 +333,12 @@ main > .sg-page.sg-page, main > .sg-formpage.sg-formpage {
 .sg-overall { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); margin-top: var(--s-4); font-weight: 500; }
 .sg-overall strong { font-family: var(--font-display); font-size: 40px; font-weight: 400; line-height: 1; }
 .sg-meta { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+/* the confirm step: the address takes the wide column and the district the narrow one, so the
+   desktop form is not four 760px fields in a row; on a phone the two stack */
+.sg-newshop__pair { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+@media (min-width: 640px) {
+  .sg-newshop__pair { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+}
 .sg-reviewform textarea, .sg-newshop textarea { font: 400 var(--t-body)/1.5 var(--font-text); }
 .sg-previews { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s-2); }
 .sg-previews img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
@@ -310,11 +370,67 @@ main > .sg-page.sg-page, main > .sg-formpage.sg-formpage {
   padding: var(--s-3);
   border: 1px solid var(--line-strong);
   cursor: pointer;
+  transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
 }
+.sg-file:hover { background: var(--p-surface); border-color: var(--p-ink); }
+.sg-file:active { background: var(--p-surface); }
 .sg-file input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .sg-file:focus-within { outline: 2px solid var(--action); outline-offset: 2px; }
+/* removing a photo is a 44px row with a 20px drawn box; the native 13px checkbox was the one
+   target on the page under the thumb size, and the image above stays inert so tapping it never
+   marks the photo for deletion */
+.sg-shot--pick .sg-shot__remove { display: flex; align-items: center; gap: var(--s-2); min-height: 44px; font-size: var(--t-small); position: relative; cursor: pointer; }
+.sg-shot--pick input[type="checkbox"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.sg-shot__check {
+  flex: none; display: inline-grid; place-items: center;
+  width: 20px; height: 20px;
+  border: 1px solid var(--line-strong);
+  background: var(--p-bg);
+  transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
+}
+.sg-shot--pick input:checked + .sg-shot__check { background: var(--p-ink); border-color: var(--p-ink); }
+.sg-shot--pick input:checked + .sg-shot__check::after {
+  content: ""; width: 9px; height: 5px;
+  border-left: 2px solid var(--p-bg); border-bottom: 2px solid var(--p-bg);
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+.sg-shot--pick input:focus-visible + .sg-shot__check { outline: 2px solid var(--p-action); outline-offset: 2px; }
+.sg-shot__remove:hover .sg-shot__check { border-color: var(--p-ink); }
+.sg-shot--pick:has(input:checked) img { opacity: .45; }
 .sg-delete { margin-top: var(--s-7); padding-top: var(--s-5); border-top: 1px solid var(--line); }
-.sg-delete .link { min-height: 44px; color: var(--err); }
+.sg-delete summary {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  min-height: 44px; color: var(--err); font-weight: 500; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: color-mix(in oklab, var(--err) 45%, transparent);
+  list-style: none;
+}
+.sg-delete summary::-webkit-details-marker { display: none; }
+.sg-delete summary::after {
+  content: ""; width: 7px; height: 7px; flex: none;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translate(-2px, -2px);
+}
+.sg-delete[open] summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+.sg-delete summary:hover { text-decoration-color: currentColor; }
+.sg-delete__confirm {
+  display: grid; gap: var(--s-4); max-width: 46ch;
+  margin-top: var(--s-3); padding: var(--s-4);
+  border: 1px solid var(--line-strong); background: var(--p-surface);
+}
+.sg-delete__confirm p { font-size: var(--t-small); }
+.sg-delete__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4); }
+.sg-delete__actions .link { display: inline-flex; align-items: center; min-height: 44px; }
+.sg-delete__confirm-btn {
+  height: var(--btn-h); padding: 0 var(--s-4);
+  border: 1px solid var(--err); border-radius: var(--r-sm);
+  background: transparent; color: var(--err);
+  font: 500 var(--t-body)/1 var(--font-text); cursor: pointer;
+  transition: background-color 160ms var(--ease);
+}
+.sg-delete__confirm-btn:hover { background: color-mix(in oklab, var(--err) 10%, var(--p-bg)); }
+.sg-delete__confirm-btn:active { transform: translateY(1px) scale(.985); }
 .btn-row .link { min-height: 44px; }
 .link { background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font: inherit; }
 .link:hover { text-decoration-thickness: 2px; }
@@ -360,6 +476,7 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: v
   transition: background-color 160ms var(--ease);
 }
 .sg-leader:hover { background: var(--line); }
+.sg-leader:hover .t-label { color: var(--ink); }
 .sg-leader strong { font-weight: 500; font-size: 17px; line-height: 1.25; }
 .sg-leader__score { font-family: var(--font-display); font-size: 26px; line-height: 1; }
 /* the phone: five leader cards stacked read as five near-identical blocks; one surface block with five
@@ -379,6 +496,7 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: v
   .sg-leader strong { grid-area: name; font-size: 16px; }
   .sg-leader__score { grid-area: score; align-self: center; font-size: 24px; }
   .sg-leader:hover { background: var(--line); }
+.sg-leader:hover .t-label { color: var(--ink); }
 }
 .sg-rank { list-style: none; margin: 0; padding: 0; }
 .sg-rank__row {
@@ -500,7 +618,7 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: v
   .sg-review { padding: var(--s-6) 0; }
   .sg-review header { gap: var(--s-4); }
   .sg-review__score { font-size: 26px; }
-  .sg-shots { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .sg-shots { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 640px; }
 
   main > .sg-page.sg-page, main > .sg-formpage.sg-formpage { padding-block: var(--s-8) calc(var(--s-10) + env(safe-area-inset-bottom)); }
   .sg-reviewform, .sg-newshop { margin-top: var(--s-7); }
@@ -552,8 +670,12 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: v
 
 @media (min-width: 1024px) {
   .sg-hero { height: clamp(360px, 36vw, 560px); }
-  /* the shop's lower body: the reviews on the reading column, the points as a sidebar; a shop with no
-     reviews keeps the single column */
+}
+
+/* the shop's lower body: the reviews on the reading column, the points as a sidebar; a shop with no
+   reviews keeps the single column. At 1024 the place gutter leaves only a 784px wrap (348 + 96 +
+   340), which wraps the review to 40 characters; the split waits for the 960px wrap of 1200 */
+@media (min-width: 1200px) {
   .sg-shop__body:has(.sg-section--points) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
