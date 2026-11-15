@@ -13,12 +13,12 @@
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <input type="hidden" name="next" value="{{ next }}">
       <label class="field field--full">Name
-        <input name="name" value="{{ name }}" list="authors" maxlength="40" autocomplete="nickname" autofocus required>
+        <input name="name" value="{{ name }}" list="authors" maxlength="40" autocomplete="nickname" autofocus required{% if error %} aria-invalid="true" aria-describedby="name-error"{% endif %}>
         <datalist id="authors">
           {% for author in authors %}<option value="{{ author }}">{% endfor %}
         </datalist>
       </label>
-      {% if error %}<p class="sg-error">{{ error }}</p>{% endif %}
+      {% if error %}<p class="sg-error" id="name-error" role="alert">{{ error }}</p>{% endif %}
       <div class="btn-row">
         <button class="btn btn--primary" type="submit">Weiter</button>
       </div>

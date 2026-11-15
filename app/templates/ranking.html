@@ -26,7 +26,7 @@
         <span class="sg-rank__place">{{ loop.index }}</span>
         <span class="sg-rank__name">
           <strong>{{ row.name }}</strong>
-          <span class="t-small muted">{{ row.district or "Berlin" }} · {{ row.review_count }} Bewertung{% if row.review_count != 1 %}en{% endif %}</span>
+          <span class="t-small muted">{{ row.district or "Berlin" }}&nbsp;· {{ row.review_count }}&nbsp;Bewertung{% if row.review_count != 1 %}en{% endif %}</span>
         </span>
         <span class="sg-rank__cats t-small muted">
           {% for c in categories %}{{ c.label }} {{ row.scores.get(c.key)|score }}{% if not loop.last %} · {% endif %}{% endfor %}

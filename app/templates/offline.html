@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Offline · spießgesell:innen{% endblock %}
-{% block bodyclass %}sg-body--center{% endblock %}
+{% block bodyclass %}sg-body--center sg-body--bare{% endblock %}
+{% block nav %}{% endblock %}
 {% block footer %}{% endblock %}
 {% block main %}
 <section class="sg-auth">
@@ -8,6 +9,7 @@
     <img class="brand-mark" src="{{ url_for('static', path='brand/mark.svg') }}" alt="" width="32" height="32">
     <h1>Gerade offline.</h1>
     <p class="t-body muted">Die Karte braucht Netz. Sobald du wieder online bist, geht es weiter.</p>
+    <a class="btn btn--primary" href="/">Erneut versuchen</a>
   </div>
 </section>
 {% endblock %}

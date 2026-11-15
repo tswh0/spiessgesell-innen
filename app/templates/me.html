@@ -4,7 +4,11 @@
 {% block main %}
 <section class="wrap sg-page">
   <h1>Meine Bewertungen</h1>
+  {% if reviews %}
   <p class="t-lead muted">Alles, was {{ current_name }} bisher gegessen hat.</p>
+  {% else %}
+  <p class="t-lead muted">Hier landet jede Bewertung, die du abgibst.</p>
+  {% endif %}
 
   {% if reviews %}
   <ol class="sg-mine">
@@ -16,7 +20,7 @@
         {% if review.body %}<p class="t-small muted">{{ review.body[:160] }}{% if review.body|length > 160 %}…{% endif %}</p>{% endif %}
       </div>
       <span class="sg-mine__score">{{ review.score|score }}</span>
-      <a class="link t-small" href="/bewertungen/{{ review.id }}/bearbeiten">Bearbeiten</a>
+      <a class="link link--arrow t-small" href="/bewertungen/{{ review.id }}/bearbeiten">Bearbeiten</a>
     </li>
     {% endfor %}
   </ol>

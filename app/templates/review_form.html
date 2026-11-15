@@ -3,9 +3,9 @@
 {% block bodyclass %}sg-body--form{% endblock %}
 {% block main %}
 <section class="wrap sg-formpage">
-  <p class="t-label muted"><a class="link" href="/laden/{{ shop.slug }}">{{ shop.name }}</a></p>
+  <p class="t-label muted"><a class="sg-back" href="/laden/{{ shop.slug }}"><span class="sg-back__arrow" aria-hidden="true">←</span><span class="sg-back__text">{{ shop.name }}</span></a></p>
   <h1>{{ "Bewertung bearbeiten" if review else "Wie war’s?" }}</h1>
-  <p class="t-lead muted">{{ shop.name }}{% if shop.district %} · {{ shop.district }}{% endif %}</p>
+  <p class="t-lead muted">{% if shop.district %}{{ shop.district }}{% else %}Berlin{% endif %}{% if review %}&nbsp;· {{ review.visited_on|date_de }}{% endif %}</p>
 
   <form class="sg-reviewform" method="post" action="{{ '/bewertungen/' ~ review.id if review else '/laden/' ~ shop.slug ~ '/bewerten' }}" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -28,12 +28,12 @@
       <label class="field">Besucht am
         <input type="date" name="visited_on" value="{{ review.visited_on if review else today }}" max="{{ today }}" required>
       </label>
-      <label class="field">Preis €
-        <input type="text" name="price" inputmode="decimal" placeholder="optional, z. B. 7,50" value="{{ review.price_eur|euro if review and review.price_eur else '' }}">
+      <label class="field"><span class="field__label">Preis € <span class="muted">(optional)</span></span>
+        <input type="text" name="price" inputmode="decimal" placeholder="z. B. 7,50" value="{% if review and review.price_eur %}{{ ('%.2f'|format(review.price_eur)).replace('.', ',') }}{% endif %}">
       </label>
     </div>
 
-    <label class="field field--full">Text <span class="muted">(optional)</span>
+    <label class="field field--full"><span class="field__label">Text <span class="muted">(optional)</span></span>
       <textarea name="body" rows="6" maxlength="4000" placeholder="Brot, Fleisch, Sauce, Stimmung …">{{ review.body if review else '' }}</textarea>
     </label>
 
@@ -44,7 +44,7 @@
         {% for image in photos %}
         <label class="sg-shot sg-shot--pick">
           <img src="/uploads/thumbs/{{ image.thumb }}" alt="" width="{{ image.width }}" height="{{ image.height }}">
-          <span><input type="checkbox" name="remove_image" value="{{ image.id }}"> löschen</span>
+          <span><input type="checkbox" name="remove_image" value="{{ image.id }}"> Löschen</span>
         </label>
         {% endfor %}
       </div>
@@ -61,7 +61,7 @@
     </div>
     <div class="sg-previews" data-previews aria-live="polite"></div>
 
-    {% if error %}<p class="sg-error">{{ error }}</p>{% endif %}
+    {% if error %}<p class="sg-error" role="alert">{{ error }}</p>{% endif %}
 
     <div class="btn-row">
       <button class="btn btn--primary" type="submit">{{ "Änderungen speichern" if review else "Bewertung speichern" }}</button>

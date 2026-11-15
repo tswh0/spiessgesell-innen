@@ -3,16 +3,16 @@
 {% block bodyclass %}sg-body--form{% endblock %}
 {% block main %}
 <section class="wrap sg-formpage">
-  <p class="t-label muted"><a class="link" href="/">Karte</a></p>
+  <p class="t-label muted"><a class="sg-back" href="/"><span class="sg-back__arrow" aria-hidden="true">←</span><span class="sg-back__text">Karte</span></a></p>
   <h1>Laden hinzufügen</h1>
   <p class="t-lead muted">Nur den Google-Maps-Link einfügen. Name, Straße und Bezirk lesen wir daraus.</p>
 
   <form class="form sg-newshop" method="post" action="/laeden/neu">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <label class="field field--full">Google-Maps-Link
-      <input name="link" inputmode="url" autocomplete="off" placeholder="https://maps.app.goo.gl/…" value="{{ link or '' }}" autofocus required>
+      <input name="link" inputmode="url" autocomplete="off" placeholder="https://maps.app.goo.gl/…" value="{{ link or '' }}" autofocus required{% if error %} aria-invalid="true" aria-describedby="shop-link-error"{% endif %}>
     </label>
-    {% if error %}<p class="sg-error">{{ error }}</p>{% endif %}
+    {% if error %}<p class="sg-error" id="shop-link-error" role="alert">{{ error }}</p>{% endif %}
     <div class="btn-row">
       <button class="btn btn--primary" type="submit">Weiter</button>
       <a class="link" href="/">Abbrechen</a>

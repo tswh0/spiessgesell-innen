@@ -1,4 +1,4 @@
-const CACHE = "ssg-v2";
+const CACHE = "ssg-v3";
 const ASSETS = [
   "/offline",
   "/static/app.css",
@@ -9,6 +9,7 @@ const ASSETS = [
   "/static/map.js",
   "/static/form.js",
   "/static/pwa.js",
+  "/static/ui.js",
   "/static/brand/mark.svg",
   "/static/brand/icon-192.png",
 ];

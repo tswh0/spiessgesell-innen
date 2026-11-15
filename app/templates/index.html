@@ -9,7 +9,7 @@
   <aside class="sg-side">
     <div class="sg-side__head">
       <h1>Döner in Berlin</h1>
-      <p class="t-small muted">{{ totals.shops }} Läden · {{ totals.reviews }} Bewertung{% if totals.reviews != 1 %}en{% endif %}</p>
+      <p class="t-small muted">{{ totals.shops }} {% if totals.shops == 1 %}Laden{% else %}Läden{% endif %} · {{ totals.reviews }}&nbsp;Bewertung{% if totals.reviews != 1 %}en{% endif %}</p>
       <form class="sg-filters" method="get" action="/">
         <label class="sr-only" for="bezirk">Bezirk</label>
         <select id="bezirk" name="bezirk" onchange="this.form.submit()">
@@ -19,7 +19,7 @@
         <label class="sr-only" for="order">Sortierung</label>
         <select id="order" name="order" onchange="this.form.submit()">
           <option value="score" {% if order == 'score' %}selected{% endif %}>Beste zuerst</option>
-          <option value="new" {% if order == 'new' %}selected{% endif %}>Neu dazu</option>
+          <option value="new" {% if order == 'new' %}selected{% endif %}>Neueste zuerst</option>
           <option value="name" {% if order == 'name' %}selected{% endif %}>A–Z</option>
         </select>
       </form>
@@ -39,9 +39,9 @@
           </span>
           <span class="sg-card__text">
             <strong>{{ shop.name }}</strong>
-            <span class="t-small muted">{{ shop.district or "Berlin" }}{% if shop.review_count %} · {{ shop.review_count }} Bewertung{% if shop.review_count != 1 %}en{% endif %}{% endif %}</span>
+            <span class="t-small muted">{{ shop.district or "Berlin" }}{% if shop.review_count %}&nbsp;· {{ shop.review_count }}&nbsp;Bewertung{% if shop.review_count != 1 %}en{% endif %}{% endif %}</span>
           </span>
-          <span class="sg-card__score">{% if shop.review_count %}{{ shop.score|score }}{% else %}<span class="sg-card__new">neu</span>{% endif %}</span>
+          <span class="sg-card__score">{% if shop.review_count %}{{ shop.score|score }}{% else %}<span class="sg-card__new">Neu</span>{% endif %}</span>
         </a>
       </li>
       {% endfor %}

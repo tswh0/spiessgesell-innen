@@ -37,7 +37,7 @@
     }).addTo(map);
     marker.bindPopup(
       `<strong>${esc(shop.name)}</strong><br>` +
-        `${score(shop.score)} · ${shop.count} Bewertung${shop.count === 1 ? "" : "en"}<br>` +
+        `${score(shop.score)} · ${shop.count}&nbsp;Bewertung${shop.count === 1 ? "" : "en"}<br>` +
         `<a href="/laden/${encodeURIComponent(shop.slug)}">Ansehen</a>`
     );
     marker.on("popupopen", () => activate(shop.slug));
