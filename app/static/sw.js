@@ -1,4 +1,4 @@
-const CACHE = "ssg-v5";
+const CACHE = "ssg-v6";
 const ASSETS = [
   "/offline",
   "/manifest.webmanifest",
@@ -53,18 +53,15 @@ self.addEventListener("fetch", (event) => {
 
   if (url.pathname.startsWith("/static/")) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        const fresh = fetch(request)
-          .then((response) => {
-            if (response.ok) {
-              const copy = response.clone();
-              caches.open(CACHE).then((cache) => cache.put(request, copy));
-            }
-            return response;
-          })
-          .catch(() => cached);
-        return cached || fresh;
-      })
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
     );
   }
 });
