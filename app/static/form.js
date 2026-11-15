@@ -41,11 +41,20 @@
           : `${files.length} Foto${files.length === 1 ? "" : "s"} gewählt`;
     }
     files.forEach((file) => {
+      const tile = document.createElement("div");
+      tile.className = "sg-preview";
       const img = document.createElement("img");
       img.alt = "";
-      img.src = URL.createObjectURL(file);
-      img.addEventListener("load", () => URL.revokeObjectURL(img.src), { once: true });
-      previews.appendChild(img);
+      const url = URL.createObjectURL(file);
+      img.src = url;
+      img.addEventListener("load", () => URL.revokeObjectURL(url), { once: true });
+      img.addEventListener("error", () => {
+        URL.revokeObjectURL(url);
+        tile.classList.add("sg-preview--file");
+        tile.textContent = file.name;
+      }, { once: true });
+      tile.appendChild(img);
+      previews.appendChild(tile);
     });
   });
 })();

@@ -219,7 +219,7 @@ def register_routes(app: FastAPI) -> None:
         response.headers.setdefault(
             "Content-Security-Policy",
             "default-src 'self'; "
-            "img-src 'self' data: https://tile.openstreetmap.org; "
+            "img-src 'self' data: blob: https://tile.openstreetmap.org; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src https://fonts.gstatic.com; "
             "script-src 'self' 'unsafe-inline'; "

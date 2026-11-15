@@ -133,6 +133,12 @@ def test_login_required(browser: TestClient):
     assert response.headers["location"].startswith("/login")
 
 
+def test_csp_allows_blob_previews(browser: TestClient):
+    csp = browser.get("/login").headers["content-security-policy"]
+    assert "img-src 'self' data: blob:" in csp
+    assert "frame-ancestors 'none'" in csp
+
+
 def test_wrong_password(browser: TestClient):
     token = csrf(browser)
     response = browser.post(

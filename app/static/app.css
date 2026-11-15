@@ -338,7 +338,15 @@ main > .sg-page.sg-page, main > .sg-formpage.sg-formpage {
 }
 .sg-reviewform textarea, .sg-newshop textarea { font: 400 var(--t-body)/1.5 var(--font-text); }
 .sg-previews { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s-2); }
+.sg-preview { min-width: 0; }
 .sg-previews img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+.sg-preview--file {
+  display: flex; align-items: center; justify-content: center;
+  aspect-ratio: 1; padding: var(--s-2);
+  border: 1px solid var(--line-strong); background: var(--p-surface);
+  color: var(--muted); font-size: var(--t-small); line-height: 1.3;
+  text-align: center; overflow-wrap: anywhere;
+}
 .sg-existing { display: grid; gap: var(--s-3); }
 .sg-error { color: var(--err); font-weight: 500; }
 .sg-hint { margin: 0 0 var(--s-2); }
