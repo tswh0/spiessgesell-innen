@@ -7,6 +7,7 @@
   <p class="t-lead muted">Was bisher am besten geschmeckt hat.</p>
 
   {% if leaders %}
+  <h2 class="sg-blockhead">Beste pro Kategorie</h2>
   <div class="sg-leaders">
     {% for leader in leaders %}
     <a class="sg-leader" href="/laden/{{ leader.shop_slug }}">
@@ -19,6 +20,7 @@
   {% endif %}
 
   {% if rows %}
+  <h2 class="sg-blockhead">Alle Läden</h2>
   <ol class="sg-rank">
     {% for row in rows %}
     <li>
@@ -29,7 +31,7 @@
           <span class="t-small muted">{{ row.district or "Berlin" }}&nbsp;· {{ row.review_count }}&nbsp;Bewertung{% if row.review_count != 1 %}en{% endif %}</span>
         </span>
         <span class="sg-rank__cats t-small muted">
-          {% for c in categories %}{{ c.label }} {{ row.scores.get(c.key)|score }}{% if not loop.last %} · {% endif %}{% endfor %}
+          {% for c in categories %}<span class="sg-cat">{{ c.label }} {{ row.scores.get(c.key)|score }}</span>{% if not loop.last %} · {% endif %}{% endfor %}
         </span>
         <span class="sg-rank__score">{{ row.score|score }}</span>
       </a>

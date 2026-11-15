@@ -52,11 +52,9 @@ main:focus { outline: none; }
 .nav.is-open .nav__links { top: calc(var(--nav) + env(safe-area-inset-top)); }
 .nav.is-open .nav__links:focus { outline: none; }
 
-/* at 320 the focused skip link otherwise covers the bar's primary button: a smaller label at
-   the far left still ends before the button's edge, so the whole nav stays readable */
-@media (max-width: 380px) {
-  .skip-link:focus { left: var(--s-2); padding: 0 var(--s-3); font-size: var(--t-small); }
-}
+/* the focused skip link sits under the bar: over the logo it hid the brand, and at 320 it
+   reached the "Laden hinzufügen" button; below the nav it never covers a control */
+.skip-link:focus { top: calc(100% + var(--s-2)); transform: none; }
 
 /* the name in the bar is a link to /wer: the value alone on a desktop, the action named in the sheet */
 .nav__name-value { display: inline-block; max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
@@ -164,9 +162,13 @@ main:focus { outline: none; }
 .sg-empty { display: grid; gap: var(--s-5); justify-items: start; padding: var(--s-7) 0; max-width: 40ch; }
 /* under a section heading the empty line follows it, not a second full block of air */
 .sg-section .sg-empty { padding-top: var(--s-2); padding-bottom: 0; }
-/* a shop with no reviews is short: the empty line ends the page 12px above the footer's own 64px
-   margin, not 112px of white under a sentence */
+/* a shop with no reviews is short: the empty line ends the page 12px above the footer, and the
+   footer follows the content instead of being pinned to the viewport foot with ~120px of dead
+   air above it on a tall screen */
 .sg-section--reviews:has(.sg-empty) { padding-bottom: var(--s-3); }
+.sg-body--shop:has(.sg-empty) { min-height: 0; }
+.sg-body--shop:has(.sg-empty) main { flex: 0 0 auto; }
+.sg-body--shop:has(.sg-empty) .footer { margin-top: var(--s-6); }
 /* a short phone (320x640) still shows the whole first card under the map */
 @media (max-width: 899px) and (max-height: 700px) {
   .sg-home { grid-template-rows: minmax(180px, 34dvh) minmax(0, 1fr); }
@@ -201,6 +203,7 @@ main:focus { outline: none; }
   font: 400 var(--t-small)/1.45 var(--font-text);
   text-align: left;
   color: var(--p-muted);
+  overflow-wrap: anywhere;
 }
 .leaflet-popup-content strong { display: block; margin-bottom: 2px; color: var(--p-ink); font: 400 22px/1.15 var(--font-display); letter-spacing: var(--display-tracking); }
 .leaflet-popup-content a { display: inline-flex; align-items: center; min-height: 44px; color: var(--p-ink); text-decoration: underline; text-underline-offset: 3px; }
@@ -235,7 +238,7 @@ main:focus { outline: none; }
 .sg-pin:hover { transform: translateY(-2px); }
 .sg-pin.is-active { background: var(--p-accent); color: var(--p-accent-ink); }
 .sg-pin.is-best { background: var(--p-accent); color: var(--p-accent-ink); }
-.sg-pin.is-empty { background: var(--p-bg); color: var(--p-ink); border-color: var(--p-ink); font-size: 20px; }
+.sg-pin.is-empty { background: var(--p-bg); color: var(--p-ink); border-color: var(--p-ink); font-family: var(--font-text); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
 
 /* ---------------------------------------------------------------- shop */
 /* the photograph is a frame of its own: cover, never a squashed width */
@@ -465,7 +468,18 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: v
 
 /* ---------------------------------------------------------------- pages */
 .sg-page h1 { margin-bottom: var(--s-2); }
-.sg-leaders { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-2); margin: var(--s-6) 0 var(--s-7); }
+/* two blocks share the page: a small section label names each one, so the category winners
+   never read as rows of the overall table */
+.sg-blockhead {
+  margin: var(--s-6) 0 var(--s-3);
+  color: var(--muted);
+  font-family: var(--font-text);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.sg-leaders { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-2); margin: 0 0 var(--s-7); }
 .sg-leader {
   display: grid;
   gap: var(--s-1);
@@ -482,7 +496,7 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: v
 /* the phone: five leader cards stacked read as five near-identical blocks; one surface block with five
    rows says the same in half the height */
 @media (max-width: 639px) {
-  .sg-leaders { grid-template-columns: minmax(0, 1fr); gap: 0; margin: var(--s-5) 0 var(--s-7); background: var(--p-surface); }
+  .sg-leaders { grid-template-columns: minmax(0, 1fr); gap: 0; margin: 0 0 var(--s-7); background: var(--p-surface); }
   .sg-leader {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas: "label score" "name score";
@@ -516,6 +530,9 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: v
 .sg-rank__name { display: grid; gap: 1px; min-width: 0; }
 .sg-rank__name strong { font-weight: 500; font-size: 16px; }
 .sg-rank__cats { display: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* a category and its score are one token: the line may wrap between categories, never between
+   "Preis-Leistung" and its number (a hyphen is a break opportunity too) */
+.sg-rank__cats .sg-cat, .sg-review__scores .sg-cat { white-space: nowrap; }
 .sg-rank__score { font-family: var(--font-display); font-size: 24px; text-align: right; font-variant-numeric: tabular-nums; }
 .sg-mine { list-style: none; margin: var(--s-6) 0 0; padding: 0; }
 .sg-mine li {
@@ -527,7 +544,7 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: v
   border-top: 1px solid var(--line);
 }
 .sg-mine li > .link { grid-column: 1 / -1; justify-self: start; min-height: 44px; }
-.sg-mine .link { display: inline-flex; align-items: center; min-height: 44px; }
+.sg-mine .link { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; }
 .sg-mine__score { font-family: var(--font-display); font-size: 24px; text-align: right; font-variant-numeric: tabular-nums; }
 
 /* long shop names, districts, authors and pasted URLs wrap instead of pushing the page sideways */
@@ -633,7 +650,7 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; background: v
   .sg-score-field input { grid-area: auto; }
   .sg-score-field output { grid-area: auto; }
   .sg-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .sg-leaders { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: var(--s-7) 0 var(--s-8); }
+  .sg-leaders { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0 0 var(--s-8); }
   .sg-rank__row { grid-template-columns: 40px minmax(0, 1fr) 56px; gap: var(--s-4); }
   .sg-rank__place { font-size: 22px; }
   .sg-rank__score { font-size: 28px; }

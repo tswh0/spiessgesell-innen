@@ -63,7 +63,7 @@
           <span class="sg-review__score">{{ review.score|score }}</span>
         </header>
         {% if review.scores %}
-        <p class="sg-review__scores t-small muted">{% for s in review.scores %}{{ s.label }} {{ s.score }}{% if not loop.last %} · {% endif %}{% endfor %}</p>
+        <p class="sg-review__scores t-small muted">{% for s in review.scores %}<span class="sg-cat">{{ s.label }} {{ s.score }}</span>{% if not loop.last %} · {% endif %}{% endfor %}</p>
         {% endif %}
         {% if review.body %}<p class="sg-review__body">{{ review.body }}</p>{% endif %}
         {% if review.images %}

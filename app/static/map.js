@@ -23,7 +23,7 @@
   const points = [];
 
   shops.forEach((shop) => {
-    const label = shop.score == null ? "+" : score(shop.score);
+    const label = shop.score == null ? "Neu" : score(shop.score);
     const icon = L.divIcon({
       className: "",
       html: `<span class="sg-pin${shop.score == null ? " is-empty" : ""}${shop.best ? " is-best" : ""}">${label}</span>`,
@@ -45,9 +45,12 @@
         : `${score(shop.score)} von 10, ${shop.count} Bewertung${shop.count === 1 ? "" : "en"}`;
       markerEl.setAttribute("aria-label", `${shop.name}, ${value}`);
     }
+    const meta = shop.score == null
+      ? "Noch keine Bewertung"
+      : `${score(shop.score)} · ${shop.count}&nbsp;Bewertung${shop.count === 1 ? "" : "en"}`;
     marker.bindPopup(
       `<strong>${esc(shop.name)}</strong>` +
-        `${score(shop.score)} · ${shop.count}&nbsp;Bewertung${shop.count === 1 ? "" : "en"}<br>` +
+        `${meta}<br>` +
         `<a href="/laden/${encodeURIComponent(shop.slug)}">Ansehen</a>`
     );
     marker.on("popupopen", (event) => {
