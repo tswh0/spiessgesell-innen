@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from app import maps
+from app import backup, maps
 from app.config import Settings
 from app.main import create_app
 
@@ -357,6 +357,15 @@ def test_duplicate_photos_are_skipped(place, browser: TestClient, app):
     uploads = app.state.settings.uploads_dir
     assert len(list(uploads.glob("*.webp"))) == 1
     assert len(list((uploads / "thumbs").glob("*.webp"))) == 1
+
+
+def test_backup_archive(app, tmp_path: Path):
+    archive = backup.run(app.state.settings.data_dir, tmp_path / "backups", keep=2)
+    assert archive and archive.suffix == ".zip"
+    with zipfile.ZipFile(archive) as package:
+        names = package.namelist()
+        assert any(name.endswith(".sqlite3") for name in names)
+        assert not any(name.startswith("uploads/") for name in names)
 
 
 def test_scores_are_required(place, browser: TestClient):
