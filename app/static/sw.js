@@ -1,4 +1,4 @@
-const CACHE = "ssg-v7";
+const CACHE = "ssg-v8";
 const ASSETS = [
   "/offline",
   "/manifest.webmanifest",
