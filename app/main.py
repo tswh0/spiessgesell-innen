@@ -1,6 +1,7 @@
 import csv
 import io
 import json
+import zipfile
 from datetime import date
 from pathlib import Path
 from urllib.parse import quote
@@ -125,6 +126,54 @@ def fmt_euro(value) -> str:
     if value is None:
         return ""
     return f"{float(value):.2f}".replace(".", ",") + " €"
+
+
+def _export_rows(conn, photo_prefix: str):
+    cats = db.categories(conn)
+    shops = db.list_shops(conn, order="name")
+    rows = []
+    for shop in shops:
+        base = [
+            shop["id"], shop["name"], shop["slug"], shop["address"],
+            shop["district"], f"{shop['lat']:.6f}", f"{shop['lng']:.6f}",
+            shop["google_maps_url"], shop["note"],
+        ]
+        reviews = db.reviews_for_shop(conn, shop["id"])
+        if not reviews:
+            rows.append(base + [""] * (7 + len(cats)))
+            continue
+        for review in reviews:
+            scores = db.review_scores(conn, review["id"])
+            price = (
+                f"{review['price_eur']:.2f}".replace(".", ",")
+                if review["price_eur"] is not None else ""
+            )
+            rows.append(base + [
+                review["id"], review["author"], fmt_date(review["visited_on"]), price,
+                *[scores.get(c["key"], "") for c in cats],
+                fmt_score(review["score"]) if review["score"] is not None else "",
+                review["body"],
+                " | ".join(f"{photo_prefix}{Path(image['file']).name}" for image in review["images"]),
+            ])
+    return cats, rows
+
+
+def _export_csv(cats, rows) -> str:
+    out = io.StringIO()
+    out.write("\ufeff")
+    writer = csv.writer(out, delimiter=";", lineterminator="\r\n")
+    writer.writerow([
+        "Laden-ID", "Laden", "Slug", "Adresse", "Bezirk", "Breitengrad",
+        "Längengrad", "Google-Maps-Link", "Notiz", "Bewertungs-ID", "Autor",
+        "Besucht am", "Preis (EUR)", *[c["label"] for c in cats], "Gesamt",
+        "Text", "Fotos",
+    ])
+    def safe(value):
+        if isinstance(value, str) and value[:1] in ("=", "+", "-", "@"):
+            return "'" + value
+        return value
+    writer.writerows([[safe(value) for value in row] for row in rows])
+    return out.getvalue()
 
 
 def redirect(url: str, status: int = 303) -> RedirectResponse:
@@ -718,53 +767,44 @@ def register_routes(app: FastAPI) -> None:
         require(request)
         conn = _conn(request)
         try:
-            cats = db.categories(conn)
-            shops = db.list_shops(conn, order="name")
-            rows = []
-            for shop in shops:
-                base = [
-                    shop["id"], shop["name"], shop["slug"], shop["address"],
-                    shop["district"], f"{shop['lat']:.6f}", f"{shop['lng']:.6f}",
-                    shop["google_maps_url"], shop["note"],
-                ]
-                reviews = db.reviews_for_shop(conn, shop["id"])
-                if not reviews:
-                    rows.append(base + [""] * (7 + len(cats)))
-                    continue
-                for review in reviews:
-                    scores = db.review_scores(conn, review["id"])
-                    price = (
-                        f"{review['price_eur']:.2f}".replace(".", ",")
-                        if review["price_eur"] is not None else ""
-                    )
-                    rows.append(base + [
-                        review["id"], review["author"], fmt_date(review["visited_on"]), price,
-                        *[scores.get(c["key"], "") for c in cats],
-                        fmt_score(review["score"]) if review["score"] is not None else "",
-                        review["body"],
-                        " | ".join(f"/uploads/{image['file']}" for image in review["images"]),
-                    ])
+            cats, rows = _export_rows(conn, "/uploads/")
+        finally:
+            conn.close()
+        filename = f"spiessgesell-innen-{date.today().isoformat()}.csv"
+        return Response(
+            _export_csv(cats, rows),
+            media_type="text/csv; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "no-store",
+            },
+        )
+
+    @app.get("/export.zip")
+    async def export_zip(request: Request):
+        require(request)
+        conn = _conn(request)
+        try:
+            cats, rows = _export_rows(conn, "fotos/")
         finally:
             conn.close()
 
-        out = io.StringIO()
-        out.write("\ufeff")
-        writer = csv.writer(out, delimiter=";", lineterminator="\r\n")
-        writer.writerow([
-            "Laden-ID", "Laden", "Slug", "Adresse", "Bezirk", "Breitengrad",
-            "Längengrad", "Google-Maps-Link", "Notiz", "Bewertungs-ID", "Autor",
-            "Besucht am", "Preis (EUR)", *[c["label"] for c in cats], "Gesamt",
-            "Text", "Fotos",
-        ])
-        def safe(value):
-            if isinstance(value, str) and value[:1] in ("=", "+", "-", "@"):
-                return "'" + value
-            return value
-        writer.writerows([[safe(value) for value in row] for row in rows])
-        filename = f"spiessgesell-innen-{date.today().isoformat()}.csv"
+        stamp = date.today().isoformat()
+        csv_name = f"spiessgesell-innen-{stamp}.csv"
+        uploads = request.app.state.settings.uploads_dir
+        photos = [
+            path for path in sorted(uploads.iterdir())
+            if path.is_file() and not path.name.startswith(".")
+        ]
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr(csv_name, _export_csv(cats, rows))
+            for photo in photos:
+                archive.write(photo, f"fotos/{photo.name}")
+        filename = f"spiessgesell-innen-{stamp}.zip"
         return Response(
-            out.getvalue(),
-            media_type="text/csv; charset=utf-8",
+            buffer.getvalue(),
+            media_type="application/zip",
             headers={
                 "Content-Disposition": f'attachment; filename="{filename}"',
                 "Cache-Control": "no-store",

@@ -1,5 +1,6 @@
 import io
 import re
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -249,6 +250,20 @@ def test_export_csv(place, browser: TestClient, app):
 
     anonymous = TestClient(app)
     assert anonymous.get("/export.csv", follow_redirects=False).status_code == 303
+
+    response = browser.get("/export.zip")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert "attachment" in response.headers["content-disposition"]
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        names = archive.namelist()
+        csv_name = next(name for name in names if name.endswith(".csv"))
+        photo_names = [name for name in names if name.startswith("fotos/")]
+        assert len(photo_names) == 1
+        text = archive.read(csv_name).decode("utf-8-sig")
+        assert "Test Döner" in text
+        assert "fotos/" in text
+        assert "/uploads/" not in text
 
 
 def test_scores_are_required(place, browser: TestClient):
