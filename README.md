@@ -3,8 +3,8 @@
 A few friends and I meet up for döner around Berlin and argue about which place is best. This is the site we use to keep score.
 
 <p align="center">
-  <img src="docs/home-mobile.jpg" width="260" alt="Map and list of döner shops on a phone">
-  <img src="docs/shop-desktop.jpg" width="560" alt="Shop page with photos, score and reviews">
+  <img src="docs/home-mobile.jpg" height="520" alt="Map and list of döner shops on a phone">
+  <img src="docs/shop-desktop.jpg" height="520" alt="Shop page with photos, score and reviews">
 </p>
 
 ## What it does
