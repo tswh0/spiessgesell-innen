@@ -17,6 +17,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.concurrency import run_in_threadpool
+from starlette.templating import pass_context
 
 from . import backup, db, images, maps
 from .config import Settings, load
@@ -29,6 +30,14 @@ MAX_PHOTOS = 6
 logger = logging.getLogger("spiessgesell")
 
 templates = Jinja2Templates(directory=BASE / "templates")
+
+
+@pass_context
+def relative_url_for(context, name, /, **path_params):
+    return context["request"].app.url_path_for(name, **path_params)
+
+
+templates.env.globals["url_for"] = relative_url_for
 
 
 class NeedLogin(Exception):

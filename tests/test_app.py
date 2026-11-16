@@ -359,6 +359,12 @@ def test_duplicate_photos_are_skipped(place, browser: TestClient, app):
     assert len(list((uploads / "thumbs").glob("*.webp"))) == 1
 
 
+def test_static_urls_are_relative(browser: TestClient):
+    html = browser.get("/login").text
+    assert 'href="/static/app.css"' in html
+    assert 'href="http://' not in html
+
+
 def test_backup_archive(app, tmp_path: Path):
     archive = backup.run(app.state.settings.data_dir, tmp_path / "backups", keep=2)
     assert archive and archive.suffix == ".zip"
