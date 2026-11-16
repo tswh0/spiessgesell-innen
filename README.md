@@ -25,7 +25,7 @@ docker compose up -d
 
 The published image is `ghcr.io/tswh0/spiessgesell-innen`. It is private, so run `docker login ghcr.io` with a token that has `read:packages` before pulling. Set `IMAGE_TAG` in `.env` to pin a release instead of `latest`.
 
-The app listens on `127.0.0.1:8095`. Put Caddy or a tunnel in front; `Caddyfile.snippet` has the two lines for `doner.twh0.de`. For local development with the code bind-mounted and reload enabled:
+The app listens on `127.0.0.1:8095`. Put Caddy or a tunnel in front; `Caddyfile.snippet` has the two lines for `doner.twh0.de`. The app trusts the proxy's `X-Forwarded-Proto` header (`FORWARDED_ALLOW_IPS=*`) because it is bound to localhost; without that, static links are generated as `http://` and browsers block the CSS as mixed content. For local development with the code bind-mounted and reload enabled:
 
 ```sh
 docker compose -f compose.dev.yaml up -d --build

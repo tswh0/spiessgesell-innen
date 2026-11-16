@@ -13,6 +13,7 @@ services:
       BACKUP_KEEP: "14"
       BACKUP_AT: "03:15"
       TZ: ${TZ:-Europe/Berlin}
+      FORWARDED_ALLOW_IPS: "*"
     volumes:
       - data:/data
       - backups:/backups
